@@ -129,7 +129,6 @@ const NavItem: React.FC<NavItemProps> = ({ href, icon: Icon, label, isActive }) 
           ? "bg-white/10 text-white font-medium" 
           : "text-gray-300 hover:bg-white/5 hover:text-white"
       )}
-      end
     >
       <Icon className="h-5 w-5" />
       <span>{label}</span>
