@@ -40,7 +40,7 @@ const Index = () => {
             <CardContent className="p-6">
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
-                  <h1 className="text-3xl font-bold mb-2">Welcome to FitPal AI</h1>
+                  <h1 className="text-3xl font-bold mb-2">Welcome to Consist AI</h1>
                   <p className="text-gray-500 mb-4">Your AI-powered fitness companion. Get personalized workout plans, diet advice, and track your progress with intelligent insights.</p>
                   <div className="flex flex-wrap gap-3">
                     <Link to="/profile">
