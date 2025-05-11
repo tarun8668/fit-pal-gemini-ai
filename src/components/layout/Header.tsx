@@ -9,17 +9,17 @@ interface HeaderProps {
 
 export const Header: React.FC<HeaderProps> = ({ toggleSidebar }) => {
   return (
-    <header className="glass-morphism border-b border-slate-700/60 p-4 flex justify-between items-center">
+    <header className="glass-morphism border-b border-white/10 p-4 flex justify-between items-center">
       <div className="flex items-center space-x-4">
-        <Button variant="ghost" size="icon" onClick={toggleSidebar} className="md:hidden text-slate-300 hover:bg-slate-800/50">
+        <Button variant="ghost" size="icon" onClick={toggleSidebar} className="md:hidden text-white hover:bg-white/10">
           <Menu className="h-5 w-5" />
         </Button>
         <div className="text-xl font-bold text-gradient">
-          NightFit AI
+          Consist
         </div>
       </div>
       <div className="flex items-center gap-4">
-        <Button variant="outline" size="icon" className="rounded-full border-slate-700 bg-slate-800/50 text-slate-300 hover:bg-slate-700">
+        <Button variant="outline" size="icon" className="rounded-full border-white/10 bg-white/5 text-white hover:bg-white/10">
           <User className="h-4 w-4" />
         </Button>
       </div>
