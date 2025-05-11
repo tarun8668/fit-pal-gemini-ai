@@ -41,11 +41,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen }) => {
       )}
       
       <aside className={cn(
-        "fixed z-50 md:relative md:z-0 inset-y-0 left-0 glass-morphism w-64 transition-transform duration-200 ease-in-out",
+        "fixed z-50 md:relative md:z-0 inset-y-0 left-0 w-64 transition-transform duration-200 ease-in-out bg-black border-r border-white/10",
         isOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
       )}>
         <div className="p-4 border-b border-white/10 flex items-center justify-center">
-          <h2 className="text-xl font-extrabold text-gradient">Consist</h2>
+          <h2 className="text-xl font-extrabold text-white">Consist</h2>
         </div>
         
         <nav className="p-4 space-y-1">
@@ -100,7 +100,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen }) => {
         </nav>
         
         <div className="absolute bottom-4 left-0 right-0 px-4">
-          <div className="glass-morphism rounded-lg p-4 border border-white/10">
+          <div className="rounded-lg p-4 border border-white/10 bg-white/5">
             <h4 className="font-medium text-sm text-white mb-1">
               AI Assistant
             </h4>
@@ -126,9 +126,10 @@ const NavItem: React.FC<NavItemProps> = ({ href, icon: Icon, label, isActive }) 
       className={({ isActive }) => cn(
         "flex items-center space-x-3 px-3 py-2 rounded-md transition-all",
         isActive 
-          ? "bg-white/10 text-white font-medium border-l-2 border-white" 
-          : "hover:bg-white/5 text-gray-300 hover:text-white"
+          ? "bg-white/10 text-white font-medium" 
+          : "text-gray-300 hover:bg-white/5 hover:text-white"
       )}
+      end
     >
       <Icon className="h-5 w-5" />
       <span>{label}</span>

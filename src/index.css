@@ -32,14 +32,6 @@
     --border: 0 0% 20%;
     --input: 0 0% 20%;
     --ring: 0 0% 80%;
-    --sidebar-background: 0 0% 5%;
-    --sidebar-foreground: 0 0% 100%;
-    --sidebar-primary: 0 0% 100%;
-    --sidebar-primary-foreground: 0 0% 0%;
-    --sidebar-accent: 0 0% 15%;
-    --sidebar-accent-foreground: 0 0% 100%;
-    --sidebar-border: 0 0% 15%;
-    --sidebar-ring: 0 0% 80%;
   }
 }
 
@@ -49,21 +41,9 @@
   }
 
   body {
-    @apply bg-background text-foreground;
-    background-image: radial-gradient(circle at 100% 20%, rgba(255, 255, 255, 0.05) 0%, rgba(0, 0, 0, 0) 30%),
-                      radial-gradient(circle at 0% 80%, rgba(255, 255, 255, 0.05) 0%, rgba(0, 0, 0, 0) 40%);
-    background-size: cover;
-    background-attachment: fixed;
+    @apply bg-black text-foreground;
   }
   
-  .glass-card {
-    @apply bg-gradient-to-br from-black/70 to-black/80 backdrop-blur-md border-white/10;
-  }
-
-  .glass-morphism {
-    @apply backdrop-blur-lg bg-black/50 border border-white/10 shadow-lg;
-  }
-
   .text-gradient {
     @apply bg-gradient-to-br from-white via-gray-200 to-gray-300 bg-clip-text text-transparent;
   }
