@@ -25,6 +25,25 @@ const ProgressPage = () => {
     { name: 'OHP', previous: 125, current: 135 },
   ];
 
+  // Chart configuration objects for the ChartContainer component
+  const weightChartConfig = {
+    weight: {
+      label: 'Weight',
+      color: '#8b5cf6',
+    },
+  };
+
+  const strengthChartConfig = {
+    previous: {
+      label: 'Previous',
+      color: '#6366f1',
+    },
+    current: {
+      label: 'Current',
+      color: '#8b5cf6',
+    },
+  };
+
   return (
     <AppLayout>
       <div className="space-y-6">
@@ -82,7 +101,7 @@ const ProgressPage = () => {
             <CardDescription className="text-slate-400">Your weight over time</CardDescription>
           </CardHeader>
           <CardContent className="h-72">
-            <ChartContainer>
+            <ChartContainer config={weightChartConfig}>
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={weightData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
@@ -116,7 +135,7 @@ const ProgressPage = () => {
             <CardDescription className="text-slate-400">Previous vs current lifting stats</CardDescription>
           </CardHeader>
           <CardContent className="h-72">
-            <ChartContainer>
+            <ChartContainer config={strengthChartConfig}>
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={strengthData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
