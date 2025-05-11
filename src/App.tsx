@@ -10,6 +10,10 @@ import WorkoutsPage from "./pages/WorkoutsPage";
 import DietPlansPage from "./pages/DietPlansPage";
 import CaloriesPage from "./pages/CaloriesPage";
 import ProfilePage from "./pages/ProfilePage";
+import ActivityPage from "./pages/ActivityPage";
+import SchedulePage from "./pages/SchedulePage";
+import ProgressPage from "./pages/ProgressPage";
+import SettingsPage from "./pages/SettingsPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -27,6 +31,10 @@ const App = () => (
           <Route path="/diet-plans" element={<DietPlansPage />} />
           <Route path="/calories" element={<CaloriesPage />} />
           <Route path="/profile" element={<ProfilePage />} />
+          <Route path="/activity" element={<ActivityPage />} />
+          <Route path="/schedule" element={<SchedulePage />} />
+          <Route path="/progress" element={<ProgressPage />} />
+          <Route path="/settings" element={<SettingsPage />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
