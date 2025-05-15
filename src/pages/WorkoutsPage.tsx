@@ -7,7 +7,7 @@ import { WorkoutSplitGenerator } from '@/components/workouts/WorkoutSplitGenerat
 const WorkoutsPage = () => {
   return (
     <AppLayout>
-      <div className="space-y-6">
+      <div className="space-y-6 bg-white dark:bg-black min-h-screen">
         <Card>
           <CardHeader>
             <CardTitle>Workout Plans</CardTitle>

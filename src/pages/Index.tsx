@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -9,6 +9,8 @@ import { Dumbbell, Apple, Weight, MessageSquare } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { CalorieCalculator } from '@/components/calculators/CalorieCalculator';
 import { UserProfileForm } from '@/components/profile/UserProfileForm';
+import { useAuth } from '@/context/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 
 const Index = () => {
   // Sample data for the charts
@@ -31,6 +33,39 @@ const Index = () => {
     { name: 'Sun', value: 2100 },
   ];
 
+  const { user } = useAuth();
+  const [profileExists, setProfileExists] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const checkUserProfile = async () => {
+      if (!user) {
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const { data, error } = await supabase
+          .from('user_profiles')
+          .select('id')
+          .eq('id', user.id)
+          .maybeSingle();
+
+        if (error) {
+          console.error('Error checking profile:', error);
+        } else {
+          setProfileExists(!!data);
+        }
+      } catch (error) {
+        console.error('Unexpected error checking profile:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    checkUserProfile();
+  }, [user]);
+
   return (
     <AppLayout>
       <div className="space-y-6">
@@ -43,9 +78,11 @@ const Index = () => {
                   <h1 className="text-3xl font-bold mb-2">Welcome to Consist AI</h1>
                   <p className="text-gray-500 mb-4">Your AI-powered fitness companion. Get personalized workout plans, diet advice, and track your progress with intelligent insights.</p>
                   <div className="flex flex-wrap gap-3">
-                    <Link to="/profile">
-                      <Button variant="outline">Complete Your Profile</Button>
-                    </Link>
+                    {!loading && !profileExists && (
+                      <Link to="/profile">
+                        <Button variant="outline">Complete Your Profile</Button>
+                      </Link>
+                    )}
                     <Link to="/chat">
                       <Button className="bg-gradient-to-r from-primary to-secondary hover:opacity-90">
                         <MessageSquare className="mr-2 h-4 w-4" />
@@ -142,17 +179,19 @@ const Index = () => {
         </section>
 
         <section className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <Card className="col-span-1">
-            <CardHeader>
-              <CardTitle>Profile Setup</CardTitle>
-              <CardDescription>Complete your profile to get personalized recommendations</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <UserProfileForm />
-            </CardContent>
-          </Card>
+          {!loading && !profileExists && (
+            <Card className="col-span-1">
+              <CardHeader>
+                <CardTitle>Profile Setup</CardTitle>
+                <CardDescription>Complete your profile to get personalized recommendations</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <UserProfileForm />
+              </CardContent>
+            </Card>
+          )}
           
-          <Card className="col-span-1">
+          <Card className={`col-span-1 ${loading || !profileExists ? '' : 'md:col-span-2'}`}>
             <CardHeader>
               <CardTitle>Calorie Calculator</CardTitle>
               <CardDescription>Find your ideal daily calorie intake</CardDescription>

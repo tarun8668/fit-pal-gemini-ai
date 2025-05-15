@@ -7,7 +7,7 @@ import { DietPlanGenerator } from '@/components/diet/DietPlanGenerator';
 const DietPlansPage = () => {
   return (
     <AppLayout>
-      <div className="space-y-6">
+      <div className="space-y-6 bg-white dark:bg-black min-h-screen">
         <Card>
           <CardHeader>
             <CardTitle>Diet Plans</CardTitle>
