@@ -6,32 +6,57 @@ import { FcGoogle } from 'react-icons/fc';
 import { toast } from '@/components/ui/use-toast';
 
 const AuthPage = () => {
-  const { user, loading, signIn } = useAuth();
+  const { user, loading, signInWithGoogle, signInWithEmail, signUpWithEmail } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [isSignUp, setIsSignUp] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleGoogleSignIn = async () => {
     try {
-      await signIn(); // Google sign-in handled in context
+      setIsLoading(true);
+      await signInWithGoogle();
     } catch (error) {
       toast({
         title: "Authentication error",
         description: "Failed to sign in with Google. Please try again.",
         variant: "destructive",
       });
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const handleEmailSignIn = async () => {
-    try {
-      const { error } = await signIn({ email, password });
-      if (error) throw error;
-    } catch (error) {
+  const handleEmailAuth = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email || !password) {
       toast({
-        title: "Authentication error",
-        description: "Failed to sign in with email. Please check your credentials.",
+        title: "Missing information",
+        description: "Please enter both email and password.",
         variant: "destructive",
       });
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      if (isSignUp) {
+        await signUpWithEmail(email, password);
+        toast({
+          title: "Sign up successful",
+          description: "Please check your email to verify your account.",
+        });
+      } else {
+        await signInWithEmail(email, password);
+      }
+    } catch (error: any) {
+      toast({
+        title: "Authentication error",
+        description: error.message || "Failed to authenticate. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -49,58 +74,63 @@ const AuthPage = () => {
         </div>
 
         <div className="bg-white/5 border border-white/10 rounded-lg p-8 shadow-lg">
-          <h2 className="text-xl font-semibold text-white mb-6 text-center">Sign in to your account</h2>
+          <h2 className="text-xl font-semibold text-white mb-6 text-center">
+            {isSignUp ? 'Create an account' : 'Sign in to your account'}
+          </h2>
 
-          <div className="space-y-4">
-            {/* Email Inputs */}
+          <form onSubmit={handleEmailAuth} className="space-y-4">
+            {/* Email Input */}
             <input
               type="email"
               placeholder="Email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="w-full px-4 py-3 rounded bg-white/10 text-white placeholder-gray-400 focus:outline-none"
+              disabled={isLoading}
             />
+            
+            {/* Password Input */}
             <input
               type="password"
               placeholder="Password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="w-full px-4 py-3 rounded bg-white/10 text-white placeholder-gray-400 focus:outline-none"
+              disabled={isLoading}
             />
 
+            {/* Email Sign In/Up Button */}
             <Button
+              type="submit"
               className="w-full bg-white text-black hover:bg-gray-100 transition-all py-6"
-              onClick={handleEmailSignIn}
-              disabled={loading}
+              disabled={isLoading}
             >
-              Sign in with Email
+              {isSignUp ? 'Sign up with Email' : 'Sign in with Email'}
             </Button>
+
+            {/* Toggle Sign In/Up */}
+            <button
+              type="button"
+              onClick={() => setIsSignUp(!isSignUp)}
+              className="w-full text-center text-sm text-gray-400 hover:text-white transition-colors"
+              disabled={isLoading}
+            >
+              {isSignUp ? 'Already have an account? Sign in' : "Don't have an account? Sign up"}
+            </button>
 
             <div className="text-center text-gray-300">or</div>
 
             {/* Google Sign-In */}
             <Button
+              type="button"
               className="w-full flex items-center justify-center gap-2 bg-white text-black hover:bg-gray-100 transition-all py-6"
               onClick={handleGoogleSignIn}
-              disabled={loading}
+              disabled={isLoading}
             >
               <FcGoogle className="h-5 w-5" />
               <span>Continue with Google</span>
             </Button>
-
-            <div className="text-center text-sm text-gray-400 mt-4">
-              <p>
-                By continuing, you agree to our{' '}
-                <a href="#" className="text-white hover:underline">
-                  Terms of Service
-                </a>{' '}
-                and{' '}
-                <a href="#" className="text-white hover:underline">
-                  Privacy Policy
-                </a>
-              </p>
-            </div>
-          </div>
+          </form>
         </div>
       </div>
     </div>
