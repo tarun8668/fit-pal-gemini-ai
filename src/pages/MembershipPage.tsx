@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
@@ -74,7 +73,6 @@ const MembershipPage = () => {
         setUserId(user.id);
         
         // Check if user has an active membership
-        // Using a raw query instead of typed query since TypeScript doesn't recognize the table yet
         const { data: memberships } = await supabase
           .from('user_memberships')
           .select('*')
@@ -116,18 +114,13 @@ const MembershipPage = () => {
 
     setLoading(plan.id);
     
-    const res = await loadRazorpay();
-    if (!res) {
-      toast({
-        title: "Error",
-        description: "Razorpay SDK failed to load. Please check your internet connection.",
-        variant: "destructive",
-      });
-      setLoading(null);
-      return;
-    }
-    
     try {
+      // Load Razorpay SDK
+      const res = await loadRazorpay();
+      if (!res) {
+        throw new Error("Razorpay SDK failed to load");
+      }
+      
       // Create payment order through our edge function
       const createOrderResponse = await fetch(`${window.location.origin}/functions/v1/create-payment`, {
         method: 'POST',
@@ -147,8 +140,9 @@ const MembershipPage = () => {
         throw new Error(orderData.error);
       }
 
+      // Configure Razorpay options
       const options = {
-        key: "rzp_test_YOUR_KEY_ID", // Replace with your Razorpay key
+        key: orderData.key_id,
         amount: orderData.amount * 100, // Amount in paise
         currency: orderData.currency,
         name: "Consist Fitness",
@@ -188,6 +182,8 @@ const MembershipPage = () => {
               description: err.message || "Failed to verify payment",
               variant: "destructive",
             });
+          } finally {
+            setLoading(null);
           }
         },
         prefill: {
@@ -203,6 +199,7 @@ const MembershipPage = () => {
         }
       };
 
+      // Open Razorpay checkout
       const paymentObject = new window.Razorpay(options);
       paymentObject.open();
     } catch (err: any) {

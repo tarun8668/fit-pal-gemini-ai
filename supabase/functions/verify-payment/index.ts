@@ -1,8 +1,7 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-// For a real app, you would use hmac-sha256 to verify the signature
-// import { createHmac } from "https://deno.land/std@0.168.0/crypto/mod.ts";
+import { createHmac } from "https://deno.land/std@0.168.0/crypto/mod.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -38,16 +37,13 @@ serve(async (req) => {
       );
     }
 
-    // In a real app, you would validate the signature here
-    // const secretKey = Deno.env.get('RAZORPAY_KEY_SECRET') ?? '';
-    // const payload = razorpay_order_id + "|" + razorpay_payment_id;
-    // const hmac = createHmac("sha256", secretKey);
-    // hmac.update(payload);
-    // const generatedSignature = hmac.digest("hex");
-    // const isSignatureValid = generatedSignature === razorpay_signature;
-
-    // For this demo, we'll assume the signature is valid
-    const isSignatureValid = true;
+    // Verify the Razorpay signature to ensure the payment is valid
+    const secretKey = Deno.env.get('RAZORPAY_KEY_SECRET') ?? '';
+    const payload = razorpay_order_id + "|" + razorpay_payment_id;
+    const hmac = createHmac("sha256", secretKey);
+    hmac.update(payload);
+    const generatedSignature = hmac.digest("hex");
+    const isSignatureValid = generatedSignature === razorpay_signature;
 
     if (!isSignatureValid) {
       return new Response(
@@ -56,15 +52,47 @@ serve(async (req) => {
       );
     }
 
-    // Update order status in the database
+    // Get order details to determine subscription details
     const { data: orderData, error: orderError } = await supabaseClient
+      .from('orders')
+      .select('plan_id')
+      .eq('order_id', razorpay_order_id)
+      .single();
+
+    if (orderError) {
+      console.error('Error fetching order:', orderError);
+      
+      return new Response(
+        JSON.stringify({ error: 'Failed to fetch order details' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    
+    // Calculate expiry based on plan
+    let expiryDate = new Date();
+    switch(orderData.plan_id) {
+      case 'monthly':
+        expiryDate.setMonth(expiryDate.getMonth() + 1);
+        break;
+      case 'quarterly':
+        expiryDate.setMonth(expiryDate.getMonth() + 3);
+        break;
+      case 'yearly':
+        expiryDate.setFullYear(expiryDate.getFullYear() + 1);
+        break;
+      default:
+        expiryDate.setMonth(expiryDate.getMonth() + 1); // Default to 1 month
+    }
+
+    // Update order status in the database
+    const { error: updateOrderError } = await supabaseClient
       .from('orders')
       .update({ status: 'completed', payment_id: razorpay_payment_id })
       .eq('order_id', razorpay_order_id)
       .eq('user_id', user_id);
 
-    if (orderError) {
-      console.error('Error updating order:', orderError);
+    if (updateOrderError) {
+      console.error('Error updating order:', updateOrderError);
       
       return new Response(
         JSON.stringify({ error: 'Failed to update order' }),
@@ -73,7 +101,7 @@ serve(async (req) => {
     }
 
     // Create or update user membership
-    const { data: membershipData, error: membershipError } = await supabaseClient
+    const { error: membershipError } = await supabaseClient
       .from('user_memberships')
       .upsert([
         {

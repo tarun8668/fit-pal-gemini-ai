@@ -14,6 +14,16 @@ serve(async (req) => {
   }
 
   try {
+    // Get the Razorpay keys from environment variables
+    const razorpayKeyId = Deno.env.get('RAZORPAY_KEY_ID');
+    
+    if (!razorpayKeyId) {
+      return new Response(
+        JSON.stringify({ error: 'Razorpay Key ID not configured' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     // Create a Supabase client
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
@@ -47,9 +57,47 @@ serve(async (req) => {
       );
     }
 
-    // In a real app, you would use the Razorpay API to create an order
-    // For demo purposes, we're creating a mock order ID
-    const orderId = 'order_' + Math.floor(Math.random() * 1000000);
+    // Get the username for the receipt
+    const { data: userData, error: userError } = await supabaseClient
+      .from('user_profiles')
+      .select('id')
+      .eq('id', userId)
+      .single();
+
+    let username = 'Fitness User';
+    if (userError) {
+      console.log('User profile not found, using default name');
+    }
+
+    // Create a Razorpay order using their API
+    const razorpayResponse = await fetch('https://api.razorpay.com/v1/orders', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Basic ' + btoa(`${razorpayKeyId}:${Deno.env.get('RAZORPAY_KEY_SECRET')}`)
+      },
+      body: JSON.stringify({
+        amount: selectedPlan.amount * 100, // Razorpay expects amount in paise
+        currency: selectedPlan.currency,
+        receipt: `receipt_${userId.slice(0, 8)}`,
+        notes: {
+          plan_id: planId,
+          user_id: userId
+        }
+      })
+    });
+
+    if (!razorpayResponse.ok) {
+      const razorpayError = await razorpayResponse.text();
+      console.error('Razorpay API error:', razorpayError);
+      return new Response(
+        JSON.stringify({ error: 'Failed to create Razorpay order' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const razorpayData = await razorpayResponse.json();
+    const orderId = razorpayData.id;
 
     // Store order information in the database
     const { data, error } = await supabaseClient
@@ -81,7 +129,8 @@ serve(async (req) => {
         orderId,
         amount: selectedPlan.amount,
         currency: selectedPlan.currency,
-        planName: selectedPlan.name
+        planName: selectedPlan.name,
+        key_id: razorpayKeyId
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
