@@ -16,6 +16,7 @@ import ActivityPage from "./pages/ActivityPage";
 import SchedulePage from "./pages/SchedulePage";
 import ProgressPage from "./pages/ProgressPage";
 import SettingsPage from "./pages/SettingsPage";
+import MembershipPage from "./pages/MembershipPage";
 import AuthPage from "./pages/AuthPage";
 import NotFound from "./pages/NotFound";
 
@@ -39,6 +40,7 @@ const App = () => (
             <Route path="/activity" element={<ProtectedRoute><ActivityPage /></ProtectedRoute>} />
             <Route path="/schedule" element={<ProtectedRoute><SchedulePage /></ProtectedRoute>} />
             <Route path="/progress" element={<ProtectedRoute><ProgressPage /></ProtectedRoute>} />
+            <Route path="/membership" element={<ProtectedRoute><MembershipPage /></ProtectedRoute>} />
             <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
             <Route path="*" element={<NotFound />} />
           </Routes>

@@ -10,7 +10,8 @@ import {
   Weight, 
   History, 
   Settings,
-  MessageSquare
+  MessageSquare,
+  CreditCard
 } from 'lucide-react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
@@ -90,6 +91,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen }) => {
             icon={History} 
             label="Progress" 
             isActive={location.pathname === '/progress'} 
+          />
+          <NavItem 
+            href="/membership" 
+            icon={CreditCard} 
+            label="Membership" 
+            isActive={location.pathname === '/membership'} 
           />
           <NavItem 
             href="/settings" 
