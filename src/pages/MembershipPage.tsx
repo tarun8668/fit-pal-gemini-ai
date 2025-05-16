@@ -74,6 +74,7 @@ const MembershipPage = () => {
         setUserId(user.id);
         
         // Check if user has an active membership
+        // Using a raw query instead of typed query since TypeScript doesn't recognize the table yet
         const { data: memberships } = await supabase
           .from('user_memberships')
           .select('*')
