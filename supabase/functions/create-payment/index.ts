@@ -16,22 +16,26 @@ serve(async (req) => {
   try {
     // Get the Razorpay keys from environment variables
     const razorpayKeyId = Deno.env.get('RAZORPAY_KEY_ID');
+    const razorpayKeySecret = Deno.env.get('RAZORPAY_KEY_SECRET');
     
-    if (!razorpayKeyId) {
+    if (!razorpayKeyId || !razorpayKeySecret) {
+      console.error('Razorpay keys not configured');
       return new Response(
-        JSON.stringify({ error: 'Razorpay Key ID not configured' }),
+        JSON.stringify({ error: 'Razorpay keys not configured' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
     // Create a Supabase client
-    const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    );
+    const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
+    const supabaseClient = createClient(supabaseUrl, supabaseServiceKey);
 
     // Get the request body
-    const { planId, userId } = await req.json();
+    const requestBody = await req.json();
+    const { planId, userId } = requestBody;
+
+    console.log('Create payment request:', { planId, userId });
 
     // Validate the request
     if (!planId || !userId) {
@@ -55,24 +59,12 @@ serve(async (req) => {
       );
     }
 
-    // Get the username for the receipt
-    const { data: userData, error: userError } = await supabaseClient
-      .from('user_profiles')
-      .select('id')
-      .eq('id', userId)
-      .single();
-
-    let username = 'Fitness User';
-    if (userError) {
-      console.log('User profile not found, using default name');
-    }
-
     // Create a Razorpay order using their API
     const razorpayResponse = await fetch('https://api.razorpay.com/v1/orders', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': 'Basic ' + btoa(`${razorpayKeyId}:${Deno.env.get('RAZORPAY_KEY_SECRET')}`)
+        'Authorization': 'Basic ' + btoa(`${razorpayKeyId}:${razorpayKeySecret}`)
       },
       body: JSON.stringify({
         amount: selectedPlan.amount * 100, // Razorpay expects amount in paise
@@ -97,8 +89,10 @@ serve(async (req) => {
     const razorpayData = await razorpayResponse.json();
     const orderId = razorpayData.id;
 
+    console.log('Razorpay order created:', orderId);
+
     // Store order information in the database
-    const { data, error } = await supabaseClient
+    const { error } = await supabaseClient
       .from('orders')
       .insert([
         {

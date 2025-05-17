@@ -16,10 +16,9 @@ serve(async (req) => {
 
   try {
     // Create a Supabase client
-    const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    );
+    const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
+    const supabaseClient = createClient(supabaseUrl, supabaseServiceKey);
 
     // Get the request body
     let requestBody;
@@ -32,6 +31,8 @@ serve(async (req) => {
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+
+    console.log('Verify payment request:', requestBody);
 
     const { 
       razorpay_payment_id, 
@@ -65,11 +66,14 @@ serve(async (req) => {
     const isSignatureValid = generatedSignature === razorpay_signature;
 
     if (!isSignatureValid) {
+      console.error('Invalid signature');
       return new Response(
         JSON.stringify({ error: 'Invalid signature' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+
+    console.log('Signature valid, updating order and membership');
 
     // Get order details to determine subscription details
     const { data: orderData, error: orderError } = await supabaseClient
@@ -128,6 +132,8 @@ serve(async (req) => {
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+
+    console.log('Payment verified and membership activated successfully');
 
     // Return success response
     return new Response(

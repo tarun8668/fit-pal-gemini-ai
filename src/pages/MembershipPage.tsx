@@ -43,13 +43,17 @@ const MembershipPage = () => {
         setUserId(user.id);
         
         // Check if user has an active membership
-        const { data: memberships } = await supabase
+        const { data: memberships, error } = await supabase
           .from('user_memberships')
           .select('*')
           .eq('user_id', user.id)
           .eq('status', 'active')
-          .single();
+          .maybeSingle();
           
+        if (error) {
+          console.error('Error fetching membership:', error);
+        }
+        
         setHasMembership(!!memberships);
         setMembershipLoading(false);
       }
@@ -62,6 +66,7 @@ const MembershipPage = () => {
     return new Promise((resolve) => {
       const script = document.createElement('script');
       script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+      script.async = true;
       script.onload = () => {
         resolve(true);
       };
@@ -92,7 +97,7 @@ const MembershipPage = () => {
       }
       
       // Create payment order through our edge function
-      const createOrderResponse = await fetch(`${window.location.origin}/functions/v1/create-payment`, {
+      const response = await fetch(`${window.location.origin}/functions/v1/create-payment`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -104,13 +109,14 @@ const MembershipPage = () => {
         })
       });
       
-      if (!createOrderResponse.ok) {
-        const errorText = await createOrderResponse.text();
+      if (!response.ok) {
+        const errorText = await response.text();
         console.error("Error response:", errorText);
         throw new Error(`Failed to create order: ${errorText}`);
       }
       
-      const orderData = await createOrderResponse.json();
+      // Parse the JSON response
+      const orderData = await response.json();
       
       if (orderData.error) {
         throw new Error(orderData.error);
@@ -140,12 +146,6 @@ const MembershipPage = () => {
                 user_id: userId
               })
             });
-            
-            if (!verifyResponse.ok) {
-              const errorText = await verifyResponse.text();
-              console.error("Verification error response:", errorText);
-              throw new Error(`Payment verification failed: ${errorText}`);
-            }
             
             const verifyData = await verifyResponse.json();
             
