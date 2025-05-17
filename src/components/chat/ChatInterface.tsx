@@ -11,7 +11,7 @@ export const ChatInterface: React.FC = () => {
     { 
       id: '1', 
       role: 'assistant', 
-      content: "Hi there! I'm your FitPal AI assistant. How can I help with your fitness journey today? You can ask me about workout plans, nutrition advice, or recovery tips!" 
+      content: "Hi there! I'm your Consist AI assistant. How can I help with your fitness journey today? You can ask me about workout plans, nutrition advice, or recovery tips!" 
     }
   ]);
   const [inputValue, setInputValue] = useState('');
