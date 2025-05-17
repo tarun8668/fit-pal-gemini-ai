@@ -1,6 +1,7 @@
+
 import React, { useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { FcGoogle } from 'react-icons/fc';
 import { toast } from '@/components/ui/use-toast';
@@ -11,6 +12,7 @@ const AuthPage = () => {
   const [password, setPassword] = useState('');
   const [isSignUp, setIsSignUp] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const location = useLocation();
 
   const handleGoogleSignIn = async () => {
     try {
@@ -60,8 +62,8 @@ const AuthPage = () => {
     }
   };
 
-  // Redirect if already authenticated
-  if (user && !loading) {
+  // Don't use loading state here to prevent flash
+  if (user) {
     return <Navigate to="/" replace />;
   }
 
