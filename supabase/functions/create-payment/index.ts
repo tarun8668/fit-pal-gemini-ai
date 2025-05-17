@@ -14,6 +14,8 @@ serve(async (req) => {
   }
 
   try {
+    console.log('Create payment function started');
+    
     // Get the Razorpay keys from environment variables
     const razorpayKeyId = Deno.env.get('RAZORPAY_KEY_ID');
     const razorpayKeySecret = Deno.env.get('RAZORPAY_KEY_SECRET');
@@ -59,7 +61,10 @@ serve(async (req) => {
       );
     }
 
+    console.log('Selected plan:', selectedPlan);
+
     // Create a Razorpay order using their API
+    console.log('Creating Razorpay order');
     const razorpayResponse = await fetch('https://api.razorpay.com/v1/orders', {
       method: 'POST',
       headers: {
@@ -77,16 +82,18 @@ serve(async (req) => {
       })
     });
 
+    const razorpayResponseText = await razorpayResponse.text();
+    console.log('Razorpay API response status:', razorpayResponse.status);
+    console.log('Razorpay API response:', razorpayResponseText);
+
     if (!razorpayResponse.ok) {
-      const razorpayError = await razorpayResponse.text();
-      console.error('Razorpay API error:', razorpayError);
       return new Response(
-        JSON.stringify({ error: `Failed to create Razorpay order: ${razorpayError}` }),
+        JSON.stringify({ error: `Failed to create Razorpay order: ${razorpayResponseText}` }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    const razorpayData = await razorpayResponse.json();
+    const razorpayData = JSON.parse(razorpayResponseText);
     const orderId = razorpayData.id;
 
     console.log('Razorpay order created:', orderId);
@@ -116,6 +123,7 @@ serve(async (req) => {
     }
 
     // Return the order information to the client
+    console.log('Returning order info to client');
     return new Response(
       JSON.stringify({
         orderId,

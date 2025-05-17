@@ -56,6 +56,8 @@ const MembershipPage = () => {
         
         setHasMembership(!!memberships);
         setMembershipLoading(false);
+      } else {
+        setMembershipLoading(false);
       }
     }
     
@@ -96,12 +98,13 @@ const MembershipPage = () => {
         throw new Error("Razorpay SDK failed to load");
       }
       
+      console.log("Creating payment order for user:", userId, "plan:", plan.id);
+      
       // Create payment order through our edge function
       const response = await fetch(`${window.location.origin}/functions/v1/create-payment`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`
         },
         body: JSON.stringify({
           planId: plan.id,
@@ -122,6 +125,8 @@ const MembershipPage = () => {
         throw new Error(orderData.error);
       }
 
+      console.log("Order created successfully:", orderData);
+
       // Configure Razorpay options
       const options = {
         key: orderData.key_id,
@@ -132,12 +137,13 @@ const MembershipPage = () => {
         order_id: orderData.orderId,
         handler: async function(response: any) {
           try {
+            console.log("Payment successful, verifying...", response);
+            
             // Verify payment through our edge function
             const verifyResponse = await fetch(`${window.location.origin}/functions/v1/verify-payment`, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`
               },
               body: JSON.stringify({
                 razorpay_payment_id: response.razorpay_payment_id,
@@ -178,9 +184,12 @@ const MembershipPage = () => {
         modal: {
           ondismiss: function() {
             setLoading(false);
+            console.log("Payment modal dismissed");
           }
         }
       };
+
+      console.log("Initializing Razorpay with options:", JSON.stringify(options));
 
       // Open Razorpay checkout
       const paymentObject = new window.Razorpay(options);

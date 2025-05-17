@@ -15,6 +15,8 @@ serve(async (req) => {
   }
 
   try {
+    console.log("Verify payment function started");
+    
     // Create a Supabase client
     const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
@@ -24,6 +26,7 @@ serve(async (req) => {
     let requestBody;
     try {
       requestBody = await req.json();
+      console.log('Request body parsed successfully');
     } catch (error) {
       console.error('Error parsing request body:', error);
       return new Response(
@@ -43,6 +46,7 @@ serve(async (req) => {
 
     // Validate the request
     if (!razorpay_payment_id || !razorpay_order_id || !razorpay_signature || !user_id) {
+      console.error('Missing required parameters:', { razorpay_payment_id, razorpay_order_id, razorpay_signature, user_id });
       return new Response(
         JSON.stringify({ error: 'Missing required parameters' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -64,6 +68,12 @@ serve(async (req) => {
     hmac.update(payload);
     const generatedSignature = hmac.digest("hex");
     const isSignatureValid = generatedSignature === razorpay_signature;
+
+    console.log('Signature verification:', { 
+      isValid: isSignatureValid, 
+      provided: razorpay_signature, 
+      generated: generatedSignature 
+    });
 
     if (!isSignatureValid) {
       console.error('Invalid signature');
@@ -91,9 +101,7 @@ serve(async (req) => {
       );
     }
     
-    // Calculate expiry date (now we only have monthly plan)
-    let expiryDate = new Date();
-    expiryDate.setMonth(expiryDate.getMonth() + 1); // Always one month
+    console.log('Order data retrieved:', orderData);
 
     // Update order status in the database
     const { error: updateOrderError } = await supabaseClient
@@ -110,6 +118,8 @@ serve(async (req) => {
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+
+    console.log('Order updated successfully');
 
     // Create or update user membership
     const { error: membershipError } = await supabaseClient
@@ -133,7 +143,7 @@ serve(async (req) => {
       );
     }
 
-    console.log('Payment verified and membership activated successfully');
+    console.log('Membership activated successfully');
 
     // Return success response
     return new Response(
