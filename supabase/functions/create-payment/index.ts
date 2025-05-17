@@ -41,11 +41,9 @@ serve(async (req) => {
       );
     }
 
-    // Get plan details - in a real app, you'd fetch this from a database
+    // Get plan details - we now only have the monthly plan at ₹399
     const plans = {
-      'monthly': { name: 'Monthly', amount: 999, currency: 'INR', duration: '1 month' },
-      'quarterly': { name: 'Quarterly', amount: 2499, currency: 'INR', duration: '3 months' },
-      'yearly': { name: 'Yearly', amount: 7999, currency: 'INR', duration: '1 year' },
+      'monthly': { name: 'Monthly', amount: 399, currency: 'INR', duration: '1 month' },
     };
 
     const selectedPlan = plans[planId as keyof typeof plans];
@@ -91,7 +89,7 @@ serve(async (req) => {
       const razorpayError = await razorpayResponse.text();
       console.error('Razorpay API error:', razorpayError);
       return new Response(
-        JSON.stringify({ error: 'Failed to create Razorpay order' }),
+        JSON.stringify({ error: `Failed to create Razorpay order: ${razorpayError}` }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }

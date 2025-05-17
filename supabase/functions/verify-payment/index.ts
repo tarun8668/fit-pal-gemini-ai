@@ -22,12 +22,23 @@ serve(async (req) => {
     );
 
     // Get the request body
+    let requestBody;
+    try {
+      requestBody = await req.json();
+    } catch (error) {
+      console.error('Error parsing request body:', error);
+      return new Response(
+        JSON.stringify({ error: 'Invalid JSON in request body' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     const { 
       razorpay_payment_id, 
       razorpay_order_id, 
       razorpay_signature,
       user_id
-    } = await req.json();
+    } = requestBody;
 
     // Validate the request
     if (!razorpay_payment_id || !razorpay_order_id || !razorpay_signature || !user_id) {
@@ -39,6 +50,14 @@ serve(async (req) => {
 
     // Verify the Razorpay signature to ensure the payment is valid
     const secretKey = Deno.env.get('RAZORPAY_KEY_SECRET') ?? '';
+    if (!secretKey) {
+      console.error('Razorpay secret key not configured');
+      return new Response(
+        JSON.stringify({ error: 'Payment verification configuration error' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     const payload = razorpay_order_id + "|" + razorpay_payment_id;
     const hmac = createHmac("sha256", secretKey);
     hmac.update(payload);
@@ -68,21 +87,9 @@ serve(async (req) => {
       );
     }
     
-    // Calculate expiry based on plan
+    // Calculate expiry date (now we only have monthly plan)
     let expiryDate = new Date();
-    switch(orderData.plan_id) {
-      case 'monthly':
-        expiryDate.setMonth(expiryDate.getMonth() + 1);
-        break;
-      case 'quarterly':
-        expiryDate.setMonth(expiryDate.getMonth() + 3);
-        break;
-      case 'yearly':
-        expiryDate.setFullYear(expiryDate.getFullYear() + 1);
-        break;
-      default:
-        expiryDate.setMonth(expiryDate.getMonth() + 1); // Default to 1 month
-    }
+    expiryDate.setMonth(expiryDate.getMonth() + 1); // Always one month
 
     // Update order status in the database
     const { error: updateOrderError } = await supabaseClient

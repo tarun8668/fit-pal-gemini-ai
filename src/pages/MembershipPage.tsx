@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
@@ -15,55 +16,24 @@ declare global {
 
 const MembershipPage = () => {
   const { toast } = useToast();
-  const [loading, setLoading] = useState<string | null>(null);
+  const [loading, setLoading] = useState<boolean>(false);
   const [userId, setUserId] = useState<string | null>(null);
   const [hasMembership, setHasMembership] = useState(false);
   const [membershipLoading, setMembershipLoading] = useState(true);
 
-  const plans = [
-    {
-      id: 'monthly',
-      name: 'Monthly',
-      description: 'Access all features for a month',
-      price: 999,
-      features: [
-        'Full workout programs',
-        'Personalized diet plans',
-        'Progress tracking',
-        'Priority support',
-      ],
-      duration: '1 month',
-      popular: false,
-    },
-    {
-      id: 'quarterly',
-      name: 'Quarterly',
-      description: 'Save 15% with quarterly billing',
-      price: 2499,
-      features: [
-        'All monthly features',
-        'Advanced analytics',
-        'Video consultations',
-        'Free fitness e-book',
-      ],
-      duration: '3 months',
-      popular: true,
-    },
-    {
-      id: 'yearly',
-      name: 'Yearly',
-      description: 'Best value with annual billing',
-      price: 7999,
-      features: [
-        'All quarterly features',
-        'Personal trainer sessions',
-        'Custom meal plans',
-        'Fitness community access',
-      ],
-      duration: '1 year',
-      popular: false,
-    },
-  ];
+  const plan = {
+    id: 'monthly',
+    name: 'Monthly',
+    description: 'Full access for one month',
+    price: 399,
+    features: [
+      'Full workout programs',
+      'Personalized diet plans',
+      'Progress tracking',
+      'Priority support',
+    ],
+    duration: '1 month',
+  };
 
   useEffect(() => {
     async function checkUserAndMembership() {
@@ -102,7 +72,7 @@ const MembershipPage = () => {
     });
   };
 
-  const handlePayment = async (plan: any) => {
+  const handlePayment = async () => {
     if (!userId) {
       toast({
         title: "Authentication required",
@@ -112,7 +82,7 @@ const MembershipPage = () => {
       return;
     }
 
-    setLoading(plan.id);
+    setLoading(true);
     
     try {
       // Load Razorpay SDK
@@ -133,6 +103,12 @@ const MembershipPage = () => {
           userId: userId
         })
       });
+      
+      if (!createOrderResponse.ok) {
+        const errorText = await createOrderResponse.text();
+        console.error("Error response:", errorText);
+        throw new Error(`Failed to create order: ${errorText}`);
+      }
       
       const orderData = await createOrderResponse.json();
       
@@ -165,6 +141,12 @@ const MembershipPage = () => {
               })
             });
             
+            if (!verifyResponse.ok) {
+              const errorText = await verifyResponse.text();
+              console.error("Verification error response:", errorText);
+              throw new Error(`Payment verification failed: ${errorText}`);
+            }
+            
             const verifyData = await verifyResponse.json();
             
             if (verifyData.success) {
@@ -177,13 +159,14 @@ const MembershipPage = () => {
               throw new Error(verifyData.error || 'Payment verification failed');
             }
           } catch (err: any) {
+            console.error("Verification error:", err);
             toast({
               title: "Verification Error",
               description: err.message || "Failed to verify payment",
               variant: "destructive",
             });
           } finally {
-            setLoading(null);
+            setLoading(false);
           }
         },
         prefill: {
@@ -194,7 +177,7 @@ const MembershipPage = () => {
         },
         modal: {
           ondismiss: function() {
-            setLoading(null);
+            setLoading(false);
           }
         }
       };
@@ -203,12 +186,13 @@ const MembershipPage = () => {
       const paymentObject = new window.Razorpay(options);
       paymentObject.open();
     } catch (err: any) {
+      console.error("Payment error:", err);
       toast({
         title: "Error",
         description: err.message || "Something went wrong. Please try again.",
         variant: "destructive",
       });
-      setLoading(null);
+      setLoading(false);
     }
   };
 
@@ -276,70 +260,59 @@ const MembershipPage = () => {
       <div className="space-y-6 bg-white dark:bg-black min-h-screen">
         <Card>
           <CardHeader>
-            <CardTitle>Membership Plans</CardTitle>
+            <CardTitle>Membership Plan</CardTitle>
             <CardDescription>
-              Choose the best plan for your fitness journey
+              Get full access to all features
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {plans.map((plan) => (
-                <Card 
-                  key={plan.id} 
-                  className={`overflow-hidden ${
-                    plan.popular ? 'border-purple-500 border-2' : ''
-                  }`}
-                >
-                  {plan.popular && (
-                    <div className="bg-purple-500 text-white text-center py-1 text-xs font-medium">
-                      MOST POPULAR
+            <div className="grid grid-cols-1 max-w-md mx-auto">
+              <Card className="overflow-hidden border-2 border-purple-500">
+                <div className="bg-purple-500 text-white text-center py-1 text-xs font-medium">
+                  BEST VALUE
+                </div>
+                <CardHeader>
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <CardTitle>{plan.name}</CardTitle>
+                      <CardDescription>{plan.description}</CardDescription>
                     </div>
-                  )}
-                  <CardHeader>
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <CardTitle>{plan.name}</CardTitle>
-                        <CardDescription>{plan.description}</CardDescription>
-                      </div>
-                      {plan.popular && (
-                        <Badge variant="outline" className="bg-purple-100 text-purple-800 border-purple-300">
-                          Best Value
-                        </Badge>
-                      )}
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="mb-4">
-                      <span className="text-3xl font-bold">₹{(plan.price / 100).toFixed(0)}</span>
-                      <span className="text-sm text-muted-foreground">/{plan.duration.split(' ')[1]}</span>
-                    </div>
-                    <ul className="space-y-2 mb-6">
-                      {plan.features.map((feature, index) => (
-                        <li key={index} className="flex items-center gap-2">
-                          <Check className="h-4 w-4 text-green-500" />
-                          <span>{feature}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </CardContent>
-                  <CardFooter>
-                    <Button 
-                      className={`w-full ${plan.popular ? 'bg-purple-600 hover:bg-purple-700' : ''}`}
-                      onClick={() => handlePayment(plan)}
-                      disabled={loading === plan.id}
-                    >
-                      {loading === plan.id ? (
-                        "Processing..."
-                      ) : (
-                        <>
-                          <CreditCard className="mr-2 h-4 w-4" />
-                          Subscribe Now
-                        </>
-                      )}
-                    </Button>
-                  </CardFooter>
-                </Card>
-              ))}
+                    <Badge variant="outline" className="bg-purple-100 text-purple-800 border-purple-300">
+                      Recommended
+                    </Badge>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="mb-4">
+                    <span className="text-3xl font-bold">₹{plan.price}</span>
+                    <span className="text-sm text-muted-foreground">/{plan.duration.split(' ')[1]}</span>
+                  </div>
+                  <ul className="space-y-2 mb-6">
+                    {plan.features.map((feature, index) => (
+                      <li key={index} className="flex items-center gap-2">
+                        <Check className="h-4 w-4 text-green-500" />
+                        <span>{feature}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </CardContent>
+                <CardFooter>
+                  <Button 
+                    className="w-full bg-purple-600 hover:bg-purple-700"
+                    onClick={handlePayment}
+                    disabled={loading}
+                  >
+                    {loading ? (
+                      "Processing..."
+                    ) : (
+                      <>
+                        <CreditCard className="mr-2 h-4 w-4" />
+                        Subscribe Now
+                      </>
+                    )}
+                  </Button>
+                </CardFooter>
+              </Card>
             </div>
           </CardContent>
         </Card>
