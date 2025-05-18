@@ -117,8 +117,8 @@ const MembershipPage = () => {
       
       // Configure Razorpay options with the specific plan ID you provided
       const options = {
-        key: "rzp_test_1DP5mmOlF5G5ag", // This will be overwritten by the key from the backend
-        subscription_id: "plan_QWQMVh7VH7Ioet", // Using the plan ID you provided
+        key: "rzp_live_AFBMj1SG3UGbjg", // This will be overwritten by the key from the backend
+        subscription_id: "sub_QWQa9T4oiAELdz", // Using the plan ID you provided
         name: "Consist Fitness",
         description: "Monthly Membership",
         image: "/placeholder.svg", // You can replace with your actual logo
