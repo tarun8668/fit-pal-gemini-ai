@@ -4,7 +4,7 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Check, CreditCard } from 'lucide-react';
+import { Check, CreditCard, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -37,32 +37,47 @@ const MembershipPage = () => {
 
   useEffect(() => {
     async function checkUserAndMembership() {
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (user) {
-        setUserId(user.id);
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
         
-        // Check if user has an active membership
-        const { data: memberships, error } = await supabase
-          .from('user_memberships')
-          .select('*')
-          .eq('user_id', user.id)
-          .eq('status', 'active')
-          .maybeSingle();
+        if (user) {
+          setUserId(user.id);
           
-        if (error) {
-          console.error('Error fetching membership:', error);
+          // Check if user has an active membership
+          const { data: memberships, error } = await supabase
+            .from('user_memberships')
+            .select('*')
+            .eq('user_id', user.id)
+            .eq('status', 'active')
+            .maybeSingle();
+            
+          if (error) {
+            console.error('Error fetching membership:', error);
+            toast({
+              title: "Error",
+              description: "Failed to load membership status",
+              variant: "destructive",
+            });
+          }
+          
+          setHasMembership(!!memberships);
+          setMembershipLoading(false);
+        } else {
+          setMembershipLoading(false);
         }
-        
-        setHasMembership(!!memberships);
+      } catch (err) {
+        console.error('Error checking user and membership:', err);
         setMembershipLoading(false);
-      } else {
-        setMembershipLoading(false);
+        toast({
+          title: "Error",
+          description: "Failed to check membership status",
+          variant: "destructive",
+        });
       }
     }
     
     checkUserAndMembership();
-  }, []);
+  }, [toast]);
 
   const loadRazorpay = () => {
     return new Promise((resolve) => {
@@ -105,6 +120,7 @@ const MembershipPage = () => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`
         },
         body: JSON.stringify({
           planId: plan.id,
@@ -112,10 +128,17 @@ const MembershipPage = () => {
         })
       });
       
+      // Check if response is OK before trying to parse JSON
       if (!response.ok) {
         const errorText = await response.text();
-        console.error("Error response:", errorText);
-        throw new Error(`Failed to create order: ${errorText}`);
+        try {
+          // Try to parse as JSON
+          const errorData = JSON.parse(errorText);
+          throw new Error(errorData.error || `Failed with status: ${response.status}`);
+        } catch (jsonError) {
+          // If parsing fails, use the raw text
+          throw new Error(`Failed with status: ${response.status}. ${errorText.substring(0, 100)}...`);
+        }
       }
       
       // Parse the JSON response
@@ -144,6 +167,7 @@ const MembershipPage = () => {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
+                'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`
               },
               body: JSON.stringify({
                 razorpay_payment_id: response.razorpay_payment_id,
@@ -152,6 +176,11 @@ const MembershipPage = () => {
                 user_id: userId
               })
             });
+            
+            if (!verifyResponse.ok) {
+              const errorText = await verifyResponse.text();
+              throw new Error(`Verification failed: ${errorText}`);
+            }
             
             const verifyData = await verifyResponse.json();
             
@@ -209,7 +238,10 @@ const MembershipPage = () => {
     return (
       <AppLayout>
         <div className="space-y-6 bg-white dark:bg-black min-h-screen flex items-center justify-center">
-          <p>Loading membership information...</p>
+          <div className="flex items-center gap-2">
+            <Loader2 className="h-5 w-5 animate-spin" />
+            <p>Loading membership information...</p>
+          </div>
         </div>
       </AppLayout>
     );
@@ -312,10 +344,13 @@ const MembershipPage = () => {
                     disabled={loading}
                   >
                     {loading ? (
-                      "Processing..."
+                      <span className="flex items-center gap-2">
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Processing...
+                      </span>
                     ) : (
                       <>
-                        <CreditCard className="mr-2 h-4 w-4" />
+                        <CreditCard className="h-4 w-4" />
                         Subscribe Now
                       </>
                     )}
