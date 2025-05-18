@@ -5,6 +5,8 @@ import { Input } from '@/components/ui/input';
 import { Send } from 'lucide-react';
 import { ChatMessage, MessageRole } from '@/types/chat';
 import { ChatBubble } from './ChatBubble';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 export const ChatInterface: React.FC = () => {
   const [messages, setMessages] = useState<ChatMessage[]>([
@@ -17,6 +19,7 @@ export const ChatInterface: React.FC = () => {
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const { toast } = useToast();
   
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -40,29 +43,45 @@ export const ChatInterface: React.FC = () => {
     setIsLoading(true);
     
     try {
-      // This would be replaced with actual Gemini API call
-      // For now, we'll simulate a response
-      setTimeout(() => {
+      // Call Gemini AI edge function
+      const { data, error } = await supabase.functions.invoke('chat-with-gemini', {
+        body: {
+          message: inputValue,
+          history: messages.map(m => ({
+            role: m.role,
+            content: m.content
+          }))
+        }
+      });
+      
+      if (error) {
+        throw new Error(error.message);
+      }
+      
+      if (data && data.response) {
         const aiResponse: ChatMessage = {
           id: (Date.now() + 1).toString(),
           role: 'assistant',
-          content: getSimulatedResponse(inputValue)
+          content: data.response
         };
         setMessages(prev => [...prev, aiResponse]);
-        setIsLoading(false);
-      }, 1500);
-      
-      // Actual API implementation would go here
-      // const response = await sendMessageToGemini(inputValue);
-      // setMessages(prev => [...prev, response]);
-      
+      } else {
+        throw new Error('No response from AI');
+      }
     } catch (error) {
       console.error('Error sending message:', error);
+      toast({
+        title: "Error",
+        description: "Failed to get a response. Please try again.",
+        variant: "destructive"
+      });
+      
       setMessages(prev => [...prev, {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
         content: "I'm sorry, I'm having trouble connecting right now. Please try again later."
       }]);
+    } finally {
       setIsLoading(false);
     }
   };
@@ -118,20 +137,3 @@ export const ChatInterface: React.FC = () => {
     </div>
   );
 };
-
-// Temporary function to simulate AI responses
-function getSimulatedResponse(userMessage: string): string {
-  const message = userMessage.toLowerCase();
-  
-  if (message.includes('workout') || message.includes('exercise')) {
-    return "For an effective workout plan, I recommend starting with a 3-day full-body routine if you're new to fitness. Focus on compound exercises like squats, deadlifts, and bench press. As you progress, you might want to try a Push/Pull/Legs split for more specific muscle targeting. Would you like me to suggest a specific routine based on your goals?";
-  } else if (message.includes('diet') || message.includes('food') || message.includes('eat')) {
-    return "A balanced diet is key to achieving your fitness goals! Make sure you're getting adequate protein (about 0.8-1g per pound of body weight), complex carbs, and healthy fats. For meal timing, try to eat protein-rich meals every 3-4 hours to maximize muscle protein synthesis. Would you like some meal recommendations based on specific goals?";
-  } else if (message.includes('calorie') || message.includes('weight')) {
-    return "To calculate your maintenance calories, you can use the formula: BMR × activity level. For weight loss, aim for a moderate deficit of 300-500 calories daily. For muscle gain, a small surplus of 200-300 calories is often ideal. Remember, consistency is more important than perfection!";
-  } else if (message.includes('recovery') || message.includes('sore')) {
-    return "For optimal recovery: 1) Prioritize sleep (7-9 hours), 2) Stay hydrated, 3) Consider light activity on rest days (like walking or stretching), 4) Ensure adequate protein intake, and 5) Don't neglect mobility work. For muscle soreness, gentle stretching, proper hydration, and occasional contrast therapy (alternating hot and cold) can help.";
-  } 
-  
-  return "That's a great question about your fitness journey! To give you the best advice, I'd need to know a bit more about your specific goals, current fitness level, and any preferences you have. Could you share more details so I can provide personalized recommendations?";
-}

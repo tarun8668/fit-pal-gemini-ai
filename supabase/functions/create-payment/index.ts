@@ -82,18 +82,16 @@ serve(async (req) => {
       })
     });
 
-    const razorpayResponseText = await razorpayResponse.text();
-    console.log('Razorpay API response status:', razorpayResponse.status);
-    console.log('Razorpay API response:', razorpayResponseText);
-
     if (!razorpayResponse.ok) {
+      const errorText = await razorpayResponse.text();
+      console.error('Razorpay API error:', razorpayResponse.status, errorText);
       return new Response(
-        JSON.stringify({ error: `Failed to create Razorpay order: ${razorpayResponseText}` }),
+        JSON.stringify({ error: `Failed to create Razorpay order: ${errorText}` }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    const razorpayData = JSON.parse(razorpayResponseText);
+    const razorpayData = await razorpayResponse.json();
     const orderId = razorpayData.id;
 
     console.log('Razorpay order created:', orderId);
