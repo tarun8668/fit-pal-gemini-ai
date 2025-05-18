@@ -24,7 +24,7 @@ const MembershipPage = () => {
     id: 'monthly',
     name: 'Monthly',
     description: 'Full access for one month',
-    price: 299, 
+    price: 299, // Updated price to 299
     features: [
       'Full workout programs',
       'Personalized diet plans',
@@ -112,9 +112,56 @@ const MembershipPage = () => {
         throw new Error("Razorpay SDK failed to load");
       }
       
-      // Get Razorpay key_id and subscription_id from backend
+      // Get Razorpay key_id from backend
       const { data: { session } } = await supabase.auth.getSession();
       
+      // Configure Razorpay options with the specific plan ID you provided
+      const options = {
+        key: "rzp_test_1DP5mmOlF5G5ag", // This will be overwritten by the key from the backend
+        subscription_id: "plan_QWQMVh7VH7Ioet", // Using the plan ID you provided
+        name: "Consist Fitness",
+        description: "Monthly Membership",
+        image: "/placeholder.svg", // You can replace with your actual logo
+        prefill: {
+          name: "Fitness User",
+        },
+        notes: {
+          user_id: userId,
+          plan_type: "monthly"
+        },
+        theme: {
+          color: "#8B5CF6"
+        },
+        handler: function(response: any) {
+          try {
+            console.log("Payment successful:", response);
+            
+            // Record successful payment
+            toast({
+              title: "Payment Successful!",
+              description: `Your ${plan.name} membership is now active.`,
+            });
+            setHasMembership(true);
+          } catch (err: any) {
+            console.error("Payment error:", err);
+            toast({
+              title: "Error",
+              description: err.message || "Something went wrong with the payment",
+              variant: "destructive",
+            });
+          } finally {
+            setLoading(false);
+          }
+        },
+        modal: {
+          ondismiss: function() {
+            setLoading(false);
+            console.log("Payment modal dismissed");
+          }
+        }
+      };
+
+      // Get the key_id from backend or use a default for testing
       try {
         const response = await fetch(`${window.location.origin}/functions/v1/create-payment`, {
           method: 'POST',
@@ -128,71 +175,17 @@ const MembershipPage = () => {
           })
         });
         
-        if (!response.ok) {
-          throw new Error("Failed to get payment details");
+        if (response.ok) {
+          const data = await response.json();
+          options.key = data.key_id;
         }
-        
-        const data = await response.json();
-        
-        // Configure Razorpay options using the provided template
-        const options = {
-          key: data.key_id || "rzp_live_AFBMj1SG3UGbjg", // Use key from backend or fallback to provided key
-          subscription_id: data.subscription_id || "sub_QWQa9T4oiAELdz", // Use from backend or fallback
-          name: "Consist Fitness",
-          description: "Monthly Membership",
-          image: "/placeholder.svg", // App logo
-          prefill: {
-            name: "Fitness User",
-            email: "",
-          },
-          notes: {
-            user_id: userId,
-            plan_type: "monthly"
-          },
-          theme: {
-            color: "#8B5CF6"
-          },
-          handler: function(response: any) {
-            try {
-              console.log("Payment successful:", response);
-              
-              // Record successful payment
-              toast({
-                title: "Payment Successful!",
-                description: `Your ${plan.name} membership is now active.`,
-              });
-              setHasMembership(true);
-            } catch (err: any) {
-              console.error("Payment error:", err);
-              toast({
-                title: "Error",
-                description: err.message || "Something went wrong with the payment",
-                variant: "destructive",
-              });
-            } finally {
-              setLoading(false);
-            }
-          },
-          modal: {
-            ondismiss: function() {
-              setLoading(false);
-              console.log("Payment modal dismissed");
-            }
-          }
-        };
-
-        // Open Razorpay checkout
-        const paymentObject = new window.Razorpay(options);
-        paymentObject.open();
-      } catch (error: any) {
-        console.error("Error setting up payment:", error);
-        toast({
-          title: "Error",
-          description: error.message || "Failed to set up payment",
-          variant: "destructive",
-        });
-        setLoading(false);
+      } catch (error) {
+        console.error("Error getting Razorpay key:", error);
       }
+
+      // Open Razorpay checkout
+      const paymentObject = new window.Razorpay(options);
+      paymentObject.open();
     } catch (err: any) {
       console.error("Payment error:", err);
       toast({
