@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
@@ -25,7 +24,7 @@ const MembershipPage = () => {
     id: 'monthly',
     name: 'Monthly',
     description: 'Full access for one month',
-    price: 399,
+    price: 299, // Updated price to 299
     features: [
       'Full workout programs',
       'Personalized diet plans',
@@ -113,102 +112,46 @@ const MembershipPage = () => {
         throw new Error("Razorpay SDK failed to load");
       }
       
-      console.log("Creating payment order for user:", userId, "plan:", plan.id);
+      // Get Razorpay key_id from backend
+      const { data: { session } } = await supabase.auth.getSession();
       
-      // Create payment order through our edge function
-      const response = await fetch(`${window.location.origin}/functions/v1/create-payment`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`
-        },
-        body: JSON.stringify({
-          planId: plan.id,
-          userId: userId
-        })
-      });
-      
-      // Check if response is OK before trying to parse JSON
-      if (!response.ok) {
-        const errorText = await response.text();
-        try {
-          // Try to parse as JSON
-          const errorData = JSON.parse(errorText);
-          throw new Error(errorData.error || `Failed with status: ${response.status}`);
-        } catch (jsonError) {
-          // If parsing fails, use the raw text
-          throw new Error(`Failed with status: ${response.status}. ${errorText.substring(0, 100)}...`);
-        }
-      }
-      
-      // Parse the JSON response
-      const orderData = await response.json();
-      
-      if (orderData.error) {
-        throw new Error(orderData.error);
-      }
-
-      console.log("Order created successfully:", orderData);
-
-      // Configure Razorpay options
+      // Configure Razorpay options with the specific plan ID you provided
       const options = {
-        key: orderData.key_id,
-        amount: orderData.amount * 100, // Amount in paise
-        currency: orderData.currency,
+        key: "rzp_test_1DP5mmOlF5G5ag", // This will be overwritten by the key from the backend
+        subscription_id: "plan_QWQMVh7VH7Ioet", // Using the plan ID you provided
         name: "Consist Fitness",
-        description: `${orderData.planName} Membership`,
-        order_id: orderData.orderId,
-        handler: async function(response: any) {
+        description: "Monthly Membership",
+        image: "/placeholder.svg", // You can replace with your actual logo
+        prefill: {
+          name: "Fitness User",
+        },
+        notes: {
+          user_id: userId,
+          plan_type: "monthly"
+        },
+        theme: {
+          color: "#8B5CF6"
+        },
+        handler: function(response: any) {
           try {
-            console.log("Payment successful, verifying...", response);
+            console.log("Payment successful:", response);
             
-            // Verify payment through our edge function
-            const verifyResponse = await fetch(`${window.location.origin}/functions/v1/verify-payment`, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`
-              },
-              body: JSON.stringify({
-                razorpay_payment_id: response.razorpay_payment_id,
-                razorpay_order_id: response.razorpay_order_id,
-                razorpay_signature: response.razorpay_signature,
-                user_id: userId
-              })
-            });
-            
-            if (!verifyResponse.ok) {
-              const errorText = await verifyResponse.text();
-              throw new Error(`Verification failed: ${errorText}`);
-            }
-            
-            const verifyData = await verifyResponse.json();
-            
-            if (verifyData.success) {
-              toast({
-                title: "Payment Successful!",
-                description: `Your ${plan.name} membership is now active.`,
-              });
-              setHasMembership(true);
-            } else {
-              throw new Error(verifyData.error || 'Payment verification failed');
-            }
-          } catch (err: any) {
-            console.error("Verification error:", err);
+            // Record successful payment
             toast({
-              title: "Verification Error",
-              description: err.message || "Failed to verify payment",
+              title: "Payment Successful!",
+              description: `Your ${plan.name} membership is now active.`,
+            });
+            setHasMembership(true);
+          } catch (err: any) {
+            console.error("Payment error:", err);
+            toast({
+              title: "Error",
+              description: err.message || "Something went wrong with the payment",
               variant: "destructive",
             });
           } finally {
             setLoading(false);
           }
-        },
-        prefill: {
-          name: "Fitness User",
-        },
-        theme: {
-          color: "#8B5CF6",
         },
         modal: {
           ondismiss: function() {
@@ -218,7 +161,27 @@ const MembershipPage = () => {
         }
       };
 
-      console.log("Initializing Razorpay with options:", JSON.stringify(options));
+      // Get the key_id from backend or use a default for testing
+      try {
+        const response = await fetch(`${window.location.origin}/functions/v1/create-payment`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session?.access_token}`
+          },
+          body: JSON.stringify({
+            planId: plan.id,
+            userId: userId
+          })
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          options.key = data.key_id;
+        }
+      } catch (error) {
+        console.error("Error getting Razorpay key:", error);
+      }
 
       // Open Razorpay checkout
       const paymentObject = new window.Razorpay(options);
@@ -342,6 +305,7 @@ const MembershipPage = () => {
                     className="w-full bg-purple-600 hover:bg-purple-700"
                     onClick={handlePayment}
                     disabled={loading}
+                    id="rzp-button1"
                   >
                     {loading ? (
                       <span className="flex items-center gap-2">
