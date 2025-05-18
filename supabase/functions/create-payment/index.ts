@@ -18,8 +18,9 @@ serve(async (req) => {
     
     // Get the Razorpay keys from environment variables
     const razorpayKeyId = Deno.env.get('RAZORPAY_KEY_ID');
+    const razorpayKeySecret = Deno.env.get('RAZORPAY_KEY_SECRET');
     
-    if (!razorpayKeyId) {
+    if (!razorpayKeyId || !razorpayKeySecret) {
       console.error('Razorpay keys not configured');
       return new Response(
         JSON.stringify({ error: 'Razorpay keys not configured' }),
@@ -32,6 +33,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({
         key_id: razorpayKeyId,
+        subscription_id: "sub_QWQa9T4oiAELdz", // Added subscription_id as per your new code
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
