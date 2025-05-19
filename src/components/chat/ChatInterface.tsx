@@ -7,6 +7,7 @@ import { ChatMessage, MessageRole } from '@/types/chat';
 import { ChatBubble } from './ChatBubble';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 export const ChatInterface: React.FC = () => {
   const [messages, setMessages] = useState<ChatMessage[]>([
@@ -18,6 +19,7 @@ export const ChatInterface: React.FC = () => {
   ]);
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   
@@ -41,6 +43,7 @@ export const ChatInterface: React.FC = () => {
     setMessages(prev => [...prev, userMessage]);
     setInputValue('');
     setIsLoading(true);
+    setError(null);
     
     try {
       // Call Gemini AI edge function
@@ -55,6 +58,7 @@ export const ChatInterface: React.FC = () => {
       });
       
       if (error) {
+        console.error('Supabase function error:', error);
         throw new Error(error.message);
       }
       
@@ -65,22 +69,20 @@ export const ChatInterface: React.FC = () => {
           content: data.response
         };
         setMessages(prev => [...prev, aiResponse]);
+      } else if (data && data.error) {
+        throw new Error(data.error);
       } else {
         throw new Error('No response from AI');
       }
     } catch (error) {
       console.error('Error sending message:', error);
+      setError(error instanceof Error ? error.message : 'Failed to get a response');
+      
       toast({
         title: "Error",
         description: "Failed to get a response. Please try again.",
         variant: "destructive"
       });
-      
-      setMessages(prev => [...prev, {
-        id: (Date.now() + 1).toString(),
-        role: 'assistant',
-        content: "I'm sorry, I'm having trouble connecting right now. Please try again later."
-      }]);
     } finally {
       setIsLoading(false);
     }
@@ -95,12 +97,21 @@ export const ChatInterface: React.FC = () => {
   return (
     <div className="flex flex-col h-full">
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        {error && (
+          <Alert variant="destructive" className="mb-4">
+            <AlertDescription>
+              {error}. Please try again or contact support if the issue persists.
+            </AlertDescription>
+          </Alert>
+        )}
+        
         {messages.map((message) => (
           <ChatBubble
             key={message.id}
             message={message}
           />
         ))}
+        
         {isLoading && (
           <div className="flex justify-start">
             <div className="bg-gray-100 text-gray-700 rounded-2xl rounded-tl-none p-4 max-w-md">

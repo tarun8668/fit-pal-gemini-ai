@@ -49,8 +49,8 @@ serve(async (req) => {
       { role: 'user', content: message }
     ];
 
-    // Make request to Gemini API
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-1.0-pro:generateContent?key=${apiKey}`, {
+    // Make request to Gemini API - updated to use the correct model name and endpoint
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${apiKey}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -78,6 +78,7 @@ serve(async (req) => {
 
     let aiResponse = "I'm sorry, I couldn't generate a response. Please try again.";
     
+    // Updated to handle the different response structure
     if (data.candidates && 
         data.candidates[0] && 
         data.candidates[0].content && 
