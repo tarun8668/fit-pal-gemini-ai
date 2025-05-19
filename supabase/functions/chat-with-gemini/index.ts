@@ -32,46 +32,37 @@ serve(async (req) => {
 
     console.log('Received message:', message);
     
-    // Format conversation history for Gemini API
-    const formattedHistory: Message[] = history?.filter((m: Message) => 
-      m.role === 'user' || m.role === 'assistant'
-    ).slice(-10) || [];
+    // Format conversation history for context
+    let conversationContext = "";
+    if (history && history.length > 0) {
+      const formattedHistory = history
+        .filter((m: Message) => m.role === 'user' || m.role === 'assistant')
+        .slice(-5)
+        .map((m: Message) => `${m.role === 'user' ? 'User' : 'Assistant'}: ${m.content}`)
+        .join("\n");
+      
+      conversationContext = `Previous conversation:\n${formattedHistory}\n\n`;
+    }
 
-    // Create the prompt with context about fitness and lifestyle topics
-    const prompt = `You are a helpful fitness and lifestyle assistant. You provide advice, tips, and information about workouts, 
+    // Create the prompt with context about fitness
+    const prompt = `${conversationContext}You are a helpful fitness and lifestyle assistant. You provide advice, tips, and information about workouts, 
     nutrition, recovery, and healthy lifestyle choices. You ONLY answer questions about fitness, nutrition, health, workouts, and wellness.
-    If asked about topics outside of fitness and health, politely steer the conversation back to fitness topics.`;
+    If asked about topics outside of fitness and health, politely steer the conversation back to fitness topics.
+    
+    User: ${message}`;
 
-    // Format messages for Gemini API
-    const messages = [
-      ...formattedHistory.map(m => ({
-        role: m.role === 'assistant' ? 'model' : 'user',
-        parts: [{ text: m.content }]
-      })),
-      {
-        role: 'user',
-        parts: [{ text: message }]
-      }
-    ];
+    console.log('Making request to Gemini API with prompt:', prompt);
 
-    // Make request to Gemini API with the correct endpoint
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${apiKey}`, {
+    // Make request to Gemini API based on the provided curl example
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        contents: [
-          {
-            role: 'user',
-            parts: [{ text: prompt }]
-          },
-          ...messages
-        ],
-        generationConfig: {
-          temperature: 0.7,
-          maxOutputTokens: 800,
-        }
+        contents: [{
+          parts: [{ text: prompt }]
+        }]
       }),
     });
 

@@ -46,6 +46,7 @@ export const ChatInterface: React.FC = () => {
     setError(null);
     
     try {
+      console.log('Sending message to Gemini:', inputValue);
       // Call Gemini AI edge function
       const { data, error } = await supabase.functions.invoke('chat-with-gemini', {
         body: {
@@ -61,6 +62,8 @@ export const ChatInterface: React.FC = () => {
         console.error('Supabase function error:', error);
         throw new Error(error.message);
       }
+      
+      console.log('Received response from Gemini:', data);
       
       if (data && data.response) {
         const aiResponse: ChatMessage = {

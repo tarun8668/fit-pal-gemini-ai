@@ -10,7 +10,7 @@ const ChatPage = () => {
       <Card className="h-[calc(100vh-11rem)]">
         <CardHeader className="border-b">
           <CardTitle>AI Fitness Assistant</CardTitle>
-          <CardDescription>Ask questions about workouts, nutrition, or fitness tips</CardDescription>
+          <CardDescription>Powered by Google Gemini - Ask questions about workouts, nutrition, or fitness tips</CardDescription>
         </CardHeader>
         <CardContent className="p-0 h-[calc(100%-5rem)]">
           <ChatInterface />
