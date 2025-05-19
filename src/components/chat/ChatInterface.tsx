@@ -8,6 +8,7 @@ import { ChatBubble } from './ChatBubble';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 export const ChatInterface: React.FC = () => {
   const [messages, setMessages] = useState<ChatMessage[]>([
@@ -99,50 +100,53 @@ export const ChatInterface: React.FC = () => {
 
   return (
     <div className="flex flex-col h-full">
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        {error && (
-          <Alert variant="destructive" className="mb-4">
-            <AlertDescription>
-              {error}. Please try again or contact support if the issue persists.
-            </AlertDescription>
-          </Alert>
-        )}
-        
-        {messages.map((message) => (
-          <ChatBubble
-            key={message.id}
-            message={message}
-          />
-        ))}
-        
-        {isLoading && (
-          <div className="flex justify-start">
-            <div className="bg-gray-100 text-gray-700 rounded-2xl rounded-tl-none p-4 max-w-md">
-              <div className="flex space-x-2 items-center">
-                <div className="w-2 h-2 rounded-full bg-gray-400 animate-pulse"></div>
-                <div className="w-2 h-2 rounded-full bg-gray-400 animate-pulse delay-150"></div>
-                <div className="w-2 h-2 rounded-full bg-gray-400 animate-pulse delay-300"></div>
+      <ScrollArea className="flex-1 p-4">
+        <div className="space-y-1 max-w-4xl mx-auto">
+          {error && (
+            <Alert variant="destructive" className="mb-4">
+              <AlertDescription>
+                {error}. Please try again or contact support if the issue persists.
+              </AlertDescription>
+            </Alert>
+          )}
+          
+          {messages.map((message) => (
+            <ChatBubble
+              key={message.id}
+              message={message}
+            />
+          ))}
+          
+          {isLoading && (
+            <div className="flex justify-start mb-4">
+              <div className="bg-gray-100 text-gray-700 rounded-2xl rounded-tl-none p-4 max-w-[70%] border border-gray-200 shadow-sm">
+                <div className="flex space-x-2 items-center">
+                  <div className="w-2 h-2 rounded-full bg-gray-400 animate-pulse"></div>
+                  <div className="w-2 h-2 rounded-full bg-gray-400 animate-pulse delay-150"></div>
+                  <div className="w-2 h-2 rounded-full bg-gray-400 animate-pulse delay-300"></div>
+                </div>
               </div>
             </div>
-          </div>
-        )}
-        <div ref={messagesEndRef} />
-      </div>
+          )}
+          <div ref={messagesEndRef} />
+        </div>
+      </ScrollArea>
       
-      <div className="p-4 border-t border-gray-200">
-        <div className="flex space-x-2">
+      <div className="p-4 border-t border-gray-200 bg-card/50">
+        <div className="flex items-center space-x-2 max-w-4xl mx-auto">
           <Input
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Ask about workouts, nutrition, or recovery..."
-            className="flex-1"
+            className="flex-1 bg-background border-gray-300 focus:border-gray-400"
             disabled={isLoading}
           />
           <Button 
             onClick={handleSend} 
             disabled={isLoading || !inputValue.trim()}
-            className="bg-primary hover:bg-primary/90"
+            className="bg-primary hover:bg-primary/90 text-primary-foreground"
+            size="icon"
           >
             <Send className="h-4 w-4" />
           </Button>

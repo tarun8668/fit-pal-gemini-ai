@@ -7,10 +7,12 @@ import { ChatInterface } from '@/components/chat/ChatInterface';
 const ChatPage = () => {
   return (
     <AppLayout>
-      <Card className="h-[calc(100vh-11rem)]">
-        <CardHeader className="border-b">
-          <CardTitle>AI Fitness Assistant</CardTitle>
-          <CardDescription>Powered by Google Gemini - Ask questions about workouts, nutrition, or fitness tips</CardDescription>
+      <Card className="h-[calc(100vh-11rem)] border-gray-200 shadow-md overflow-hidden">
+        <CardHeader className="border-b py-4">
+          <CardTitle className="text-xl font-semibold">AI Fitness Assistant</CardTitle>
+          <CardDescription className="text-sm">
+            Powered by Google Gemini - Ask questions about workouts, nutrition, or fitness tips
+          </CardDescription>
         </CardHeader>
         <CardContent className="p-0 h-[calc(100%-5rem)]">
           <ChatInterface />
