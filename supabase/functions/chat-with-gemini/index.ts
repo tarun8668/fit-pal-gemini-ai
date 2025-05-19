@@ -18,7 +18,7 @@ serve(async (req) => {
   }
 
   try {
-    const apiKey = Deno.env.get('GEMINI_API_KEY');
+    const apiKey = Deno.env.get('GEMINI_API_KEY') || "AIzaSyDyQBZOW537U0IME1RSEq4yZ7ArPbdwFno";
     if (!apiKey) {
       throw new Error('Missing Gemini API key');
     }
@@ -42,24 +42,32 @@ serve(async (req) => {
     nutrition, recovery, and healthy lifestyle choices. You ONLY answer questions about fitness, nutrition, health, workouts, and wellness.
     If asked about topics outside of fitness and health, politely steer the conversation back to fitness topics.`;
 
-    // Add the newest user message
+    // Format messages for Gemini API
     const messages = [
-      { role: 'user', content: prompt },
-      ...formattedHistory,
-      { role: 'user', content: message }
+      ...formattedHistory.map(m => ({
+        role: m.role === 'assistant' ? 'model' : 'user',
+        parts: [{ text: m.content }]
+      })),
+      {
+        role: 'user',
+        parts: [{ text: message }]
+      }
     ];
 
-    // Make request to Gemini API - updated to use the correct model name and endpoint
+    // Make request to Gemini API with the correct endpoint
     const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${apiKey}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        contents: messages.map(m => ({
-          role: m.role === 'assistant' ? 'model' : 'user',
-          parts: [{ text: m.content }]
-        })),
+        contents: [
+          {
+            role: 'user',
+            parts: [{ text: prompt }]
+          },
+          ...messages
+        ],
         generationConfig: {
           temperature: 0.7,
           maxOutputTokens: 800,
@@ -78,7 +86,7 @@ serve(async (req) => {
 
     let aiResponse = "I'm sorry, I couldn't generate a response. Please try again.";
     
-    // Updated to handle the different response structure
+    // Handle the Gemini API response structure
     if (data.candidates && 
         data.candidates[0] && 
         data.candidates[0].content && 
