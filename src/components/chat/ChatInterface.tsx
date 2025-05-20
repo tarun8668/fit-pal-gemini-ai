@@ -21,16 +21,22 @@ export const ChatInterface: React.FC = () => {
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [streamingContent, setStreamingContent] = useState<string>('');
+  const [isStreaming, setIsStreaming] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   
   const scrollToBottom = () => {
+    if (scrollAreaRef.current) {
+      scrollAreaRef.current.scrollTop = scrollAreaRef.current.scrollHeight;
+    }
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
   
   useEffect(() => {
     scrollToBottom();
-  }, [messages]);
+  }, [messages, streamingContent]);
 
   const handleSend = async () => {
     if (inputValue.trim() === '') return;
@@ -45,6 +51,8 @@ export const ChatInterface: React.FC = () => {
     setInputValue('');
     setIsLoading(true);
     setError(null);
+    setStreamingContent('');
+    setIsStreaming(true);
     
     try {
       console.log('Sending message to Gemini:', inputValue);
@@ -67,11 +75,29 @@ export const ChatInterface: React.FC = () => {
       console.log('Received response from Gemini:', data);
       
       if (data && data.response) {
+        // Simulate word-by-word streaming
+        const words = data.response.split(' ');
+        let currentText = '';
+        
+        for (let i = 0; i < words.length; i++) {
+          await new Promise<void>((resolve) => {
+            setTimeout(() => {
+              currentText += (i > 0 ? ' ' : '') + words[i];
+              setStreamingContent(currentText);
+              scrollToBottom();
+              resolve();
+            }, 30); // Adjust speed of word appearance (lower = faster)
+          });
+        }
+        
+        // After streaming is complete, add the full message
         const aiResponse: ChatMessage = {
           id: (Date.now() + 1).toString(),
           role: 'assistant',
           content: data.response
         };
+        setIsStreaming(false);
+        setStreamingContent('');
         setMessages(prev => [...prev, aiResponse]);
       } else if (data && data.error) {
         throw new Error(data.error);
@@ -81,6 +107,7 @@ export const ChatInterface: React.FC = () => {
     } catch (error) {
       console.error('Error sending message:', error);
       setError(error instanceof Error ? error.message : 'Failed to get a response');
+      setIsStreaming(false);
       
       toast({
         title: "Error",
@@ -100,7 +127,10 @@ export const ChatInterface: React.FC = () => {
 
   return (
     <div className="flex flex-col h-full">
-      <ScrollArea className="flex-1 p-4">
+      <ScrollArea 
+        className="flex-1 p-4" 
+        ref={scrollAreaRef as React.RefObject<HTMLDivElement>}
+      >
         <div className="space-y-1 max-w-4xl mx-auto">
           {error && (
             <Alert variant="destructive" className="mb-4">
@@ -117,7 +147,15 @@ export const ChatInterface: React.FC = () => {
             />
           ))}
           
-          {isLoading && (
+          {isStreaming && (
+            <div className="flex justify-start mb-4">
+              <div className="bg-gray-100 text-gray-800 rounded-2xl rounded-tl-none p-4 max-w-[80%] md:max-w-[70%] border border-gray-200 shadow-sm">
+                <div className="whitespace-pre-wrap">{streamingContent}</div>
+              </div>
+            </div>
+          )}
+          
+          {isLoading && !isStreaming && (
             <div className="flex justify-start mb-4">
               <div className="bg-gray-100 text-gray-700 rounded-2xl rounded-tl-none p-4 max-w-[70%] border border-gray-200 shadow-sm">
                 <div className="flex space-x-2 items-center">
@@ -140,11 +178,11 @@ export const ChatInterface: React.FC = () => {
             onKeyDown={handleKeyDown}
             placeholder="Ask about workouts, nutrition, or recovery..."
             className="flex-1 bg-background border-gray-300 focus:border-gray-400"
-            disabled={isLoading}
+            disabled={isLoading || isStreaming}
           />
           <Button 
             onClick={handleSend} 
-            disabled={isLoading || !inputValue.trim()}
+            disabled={isLoading || isStreaming || !inputValue.trim()}
             className="bg-primary hover:bg-primary/90 text-primary-foreground"
             size="icon"
           >

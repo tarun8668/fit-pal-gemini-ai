@@ -23,7 +23,7 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({ message }) => {
           : "bg-gray-100 text-gray-800 rounded-tl-none border border-gray-200"
       )}>
         {message.content.length > 300 ? (
-          <ScrollArea className="max-h-[300px] pr-2">
+          <ScrollArea className="max-h-[300px] overflow-y-auto pr-2">
             <div className="whitespace-pre-wrap">{message.content}</div>
           </ScrollArea>
         ) : (
