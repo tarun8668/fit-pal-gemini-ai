@@ -11,7 +11,7 @@ const ChatPage = () => {
         <CardHeader className="border-b py-4">
           <CardTitle className="text-xl font-semibold">AI Fitness Assistant</CardTitle>
           <CardDescription className="text-sm">
-            Powered by Google Gemini - Ask questions about workouts, nutrition, or fitness tips
+            Ask questions about workouts, nutrition, or fitness tips
           </CardDescription>
         </CardHeader>
         <CardContent className="p-0 h-[calc(100%-5rem)]">
