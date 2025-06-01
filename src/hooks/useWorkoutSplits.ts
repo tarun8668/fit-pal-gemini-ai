@@ -48,7 +48,12 @@ export const useWorkoutSplits = () => {
         return;
       }
 
-      setSavedSplit(data);
+      if (data) {
+        setSavedSplit({
+          ...data,
+          split_data: data.split_data as WorkoutSplit
+        });
+      }
     } catch (error) {
       console.error('Error fetching workout split:', error);
     } finally {
@@ -113,7 +118,10 @@ export const useWorkoutSplits = () => {
         return;
       }
 
-      setSavedSplit(result.data);
+      setSavedSplit({
+        ...result.data,
+        split_data: result.data.split_data as WorkoutSplit
+      });
       toast({
         title: "Success",
         description: "Workout split saved successfully!",
