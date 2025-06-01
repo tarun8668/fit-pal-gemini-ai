@@ -1,10 +1,10 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
+import { useWorkoutSplits } from '@/hooks/useWorkoutSplits';
 
 type WorkoutSplit = {
   name: string;
@@ -143,10 +143,16 @@ const WORKOUT_SPLITS: Record<string, WorkoutSplit> = {
 export const WorkoutSplitGenerator = () => {
   const [selectedSplit, setSelectedSplit] = useState('ppl');
   const [activeTab, setActiveTab] = useState('0');
+  const { savedSplit, saveSplit } = useWorkoutSplits();
 
   const handleSplitChange = (value: string) => {
     setSelectedSplit(value);
     setActiveTab('0'); // Reset to first tab when changing split
+  };
+
+  const handleSaveSplit = () => {
+    const currentSplit = WORKOUT_SPLITS[selectedSplit];
+    saveSplit(selectedSplit, currentSplit);
   };
 
   const currentSplit = WORKOUT_SPLITS[selectedSplit];
@@ -161,6 +167,14 @@ export const WorkoutSplitGenerator = () => {
       </CardHeader>
       <CardContent>
         <div className="space-y-6">
+          {savedSplit && (
+            <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
+              <p className="text-sm text-green-800">
+                <strong>Current saved split:</strong> {savedSplit.split_name}
+              </p>
+            </div>
+          )}
+          
           <div className="space-y-2">
             <Label htmlFor="split-type">Select Workout Split</Label>
             <Select onValueChange={handleSplitChange} value={selectedSplit}>
@@ -232,7 +246,7 @@ export const WorkoutSplitGenerator = () => {
             </Tabs>
           </div>
           
-          <Button className="w-full">
+          <Button className="w-full" onClick={handleSaveSplit}>
             Save This Split
           </Button>
         </div>

@@ -246,6 +246,36 @@ export type Database = {
         }
         Relationships: []
       }
+      user_workout_splits: {
+        Row: {
+          created_at: string | null
+          id: string
+          split_data: Json
+          split_name: string
+          split_type: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          split_data: Json
+          split_name: string
+          split_type: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          split_data?: Json
+          split_name?: string
+          split_type?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
