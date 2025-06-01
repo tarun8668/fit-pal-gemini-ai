@@ -17,7 +17,7 @@ export const useGoogleCalendar = () => {
   const { toast } = useToast();
   const { user } = useAuth();
 
-  const GOOGLE_CLIENT_ID = 'YOUR_GOOGLE_CLIENT_ID'; // This needs to be configured
+  const GOOGLE_CLIENT_ID = '887596394611-0pqeerc2fauub04b6h23pi583a2q9vak.apps.googleusercontent.com'; // This needs to be configured
   const DISCOVERY_DOC = 'https://www.googleapis.com/discovery/v1/apis/calendar/v3/rest';
   const SCOPES = 'https://www.googleapis.com/auth/calendar';
 
