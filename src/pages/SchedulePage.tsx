@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Calendar as CalendarIcon, Clock } from 'lucide-react';
 import { useWorkoutSplits } from '@/hooks/useWorkoutSplits';
+import { GoogleCalendarSync } from '@/components/calendar/GoogleCalendarSync';
 
 const SchedulePage = () => {
   const { savedSplit, isLoading } = useWorkoutSplits();
@@ -132,7 +133,9 @@ const SchedulePage = () => {
           </CardContent>
         </Card>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <GoogleCalendarSync workoutSchedule={workoutSchedule} />
+          
           <Card className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-md border-slate-700">
             <CardHeader>
               <CardTitle className="text-slate-100">Monthly Overview</CardTitle>
@@ -144,34 +147,34 @@ const SchedulePage = () => {
               </div>
             </CardContent>
           </Card>
-          
-          <Card className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-md border-slate-700">
-            <CardHeader>
-              <CardTitle className="text-slate-100">Workout Notes</CardTitle>
-              <CardDescription className="text-slate-400">Reminders for your training</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ul className="space-y-2">
-                <li className="flex items-start space-x-2 text-slate-300">
-                  <span className="text-primary">•</span>
-                  <span>Increase bench press by 5lbs this week</span>
-                </li>
-                <li className="flex items-start space-x-2 text-slate-300">
-                  <span className="text-primary">•</span>
-                  <span>Focus on proper squat form, go deeper</span>
-                </li>
-                <li className="flex items-start space-x-2 text-slate-300">
-                  <span className="text-primary">•</span>
-                  <span>Remember to stretch after leg day</span>
-                </li>
-                <li className="flex items-start space-x-2 text-slate-300">
-                  <span className="text-primary">•</span>
-                  <span>Increase water intake during workouts</span>
-                </li>
-              </ul>
-            </CardContent>
-          </Card>
         </div>
+        
+        <Card className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-md border-slate-700">
+          <CardHeader>
+            <CardTitle className="text-slate-100">Workout Notes</CardTitle>
+            <CardDescription className="text-slate-400">Reminders for your training</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ul className="space-y-2">
+              <li className="flex items-start space-x-2 text-slate-300">
+                <span className="text-primary">•</span>
+                <span>Increase bench press by 5lbs this week</span>
+              </li>
+              <li className="flex items-start space-x-2 text-slate-300">
+                <span className="text-primary">•</span>
+                <span>Focus on proper squat form, go deeper</span>
+              </li>
+              <li className="flex items-start space-x-2 text-slate-300">
+                <span className="text-primary">•</span>
+                <span>Remember to stretch after leg day</span>
+              </li>
+              <li className="flex items-start space-x-2 text-slate-300">
+                <span className="text-primary">•</span>
+                <span>Increase water intake during workouts</span>
+              </li>
+            </ul>
+          </CardContent>
+        </Card>
       </div>
     </AppLayout>
   );
