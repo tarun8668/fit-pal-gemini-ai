@@ -3,6 +3,7 @@ import React from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { CalorieCalculator } from '@/components/calculators/CalorieCalculator';
+import { CalorieHistoryTable } from '@/components/calculators/CalorieHistoryTable';
 
 const CaloriesPage = () => {
   return (
@@ -17,6 +18,8 @@ const CaloriesPage = () => {
             <CalorieCalculator />
           </CardContent>
         </Card>
+        
+        <CalorieHistoryTable />
       </div>
     </AppLayout>
   );

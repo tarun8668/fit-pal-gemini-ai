@@ -1,12 +1,16 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/context/AuthContext';
+import { useToast } from '@/hooks/use-toast';
 
 export const CalorieCalculator = () => {
+  const { user } = useAuth();
+  const { toast } = useToast();
   const [formData, setFormData] = useState({
     age: '',
     weight: '',
@@ -21,12 +25,58 @@ export const CalorieCalculator = () => {
     targetCalories: 0,
   });
   const [calculated, setCalculated] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   const handleChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
-  const calculateCalories = (e: React.FormEvent) => {
+  const saveCalculation = async (calculationData: any) => {
+    if (!user) return;
+
+    try {
+      setSaving(true);
+      const { error } = await supabase
+        .from('calorie_calculations')
+        .insert({
+          user_id: user.id,
+          age: parseInt(formData.age),
+          weight: parseFloat(formData.weight),
+          height: parseFloat(formData.height),
+          gender: formData.gender,
+          activity_level: formData.activityLevel,
+          goal: formData.goal,
+          bmr: calculationData.bmr,
+          maintenance_calories: calculationData.maintenanceCalories,
+          target_calories: calculationData.targetCalories,
+        });
+
+      if (error) {
+        console.error('Error saving calculation:', error);
+        toast({
+          title: "Error",
+          description: "Failed to save calculation",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Success",
+          description: "Calculation saved successfully",
+        });
+      }
+    } catch (error) {
+      console.error('Unexpected error:', error);
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred",
+        variant: "destructive",
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const calculateCalories = async (e: React.FormEvent) => {
     e.preventDefault();
     
     // Parse form values
@@ -80,13 +130,17 @@ export const CalorieCalculator = () => {
         targetCalories = maintenanceCalories; // Maintenance
     }
     
-    setResult({
+    const calculationResult = {
       bmr: Math.round(bmr),
       maintenanceCalories: Math.round(maintenanceCalories),
       targetCalories: Math.round(targetCalories)
-    });
-    
+    };
+
+    setResult(calculationResult);
     setCalculated(true);
+
+    // Save to database
+    await saveCalculation(calculationResult);
   };
 
   return (
@@ -190,8 +244,8 @@ export const CalorieCalculator = () => {
               </div>
             </div>
             
-            <Button type="submit" className="w-full bg-primary">
-              Calculate Calories
+            <Button type="submit" className="w-full bg-primary" disabled={saving}>
+              {saving ? 'Calculating & Saving...' : 'Calculate Calories'}
             </Button>
           </form>
         ) : (
