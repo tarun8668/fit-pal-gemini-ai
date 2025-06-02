@@ -15,6 +15,7 @@ const SchedulePage = () => {
     markWorkoutComplete, 
     unmarkWorkoutComplete, 
     isWorkoutCompletedToday,
+    canMarkWorkoutForDay,
     isLoading: completionsLoading
   } = useWorkoutCompletions();
 
@@ -142,6 +143,7 @@ const SchedulePage = () => {
                           onToggle={() => handleWorkoutToggle(item.day, item.workout)}
                           disabled={completionsLoading}
                           workoutName={item.workout}
+                          canMarkToday={canMarkWorkoutForDay(item.day)}
                         />
                       ) : (
                         <Badge className="bg-slate-600/50 text-slate-300 hover:bg-slate-600/80">Rest Day</Badge>

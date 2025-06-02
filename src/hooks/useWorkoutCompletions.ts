@@ -39,7 +39,7 @@ export const useWorkoutCompletions = () => {
       if (error) throw error;
 
       setCompletions(data || []);
-      calculateStreak(data || []);
+      calculateContinuousStreak(data || []);
     } catch (error) {
       console.error('Error fetching workout completions:', error);
     } finally {
@@ -47,13 +47,13 @@ export const useWorkoutCompletions = () => {
     }
   };
 
-  const calculateStreak = (completionsData: WorkoutCompletion[]) => {
+  const calculateContinuousStreak = (completionsData: WorkoutCompletion[]) => {
     if (completionsData.length === 0) {
       setStreak(0);
       return;
     }
 
-    // Get unique completion dates
+    // Get unique completion dates and sort them in descending order
     const uniqueDates = Array.from(
       new Set(completionsData.map(c => c.completion_date))
     ).sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
@@ -62,11 +62,25 @@ export const useWorkoutCompletions = () => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
+    // Check if there's a completion today or yesterday to start the streak
+    const mostRecentDate = new Date(uniqueDates[0]);
+    mostRecentDate.setHours(0, 0, 0, 0);
+    
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+
+    // Only count streak if there's a recent completion (today or yesterday)
+    if (mostRecentDate.getTime() !== today.getTime() && mostRecentDate.getTime() !== yesterday.getTime()) {
+      setStreak(0);
+      return;
+    }
+
+    // Count consecutive days from the most recent completion backwards
     for (let i = 0; i < uniqueDates.length; i++) {
       const completionDate = new Date(uniqueDates[i]);
       completionDate.setHours(0, 0, 0, 0);
       
-      const expectedDate = new Date(today);
+      const expectedDate = new Date(mostRecentDate);
       expectedDate.setDate(expectedDate.getDate() - i);
 
       if (completionDate.getTime() === expectedDate.getTime()) {
@@ -83,13 +97,15 @@ export const useWorkoutCompletions = () => {
     if (!user) return;
 
     try {
+      const today = new Date().toISOString().split('T')[0];
+      
       const { error } = await supabase
         .from('workout_completions')
         .insert({
           user_id: user.id,
           workout_day: workoutDay,
           workout_name: workoutName,
-          completion_date: new Date().toISOString().split('T')[0]
+          completion_date: today
         });
 
       if (error) throw error;
@@ -156,6 +172,15 @@ export const useWorkoutCompletions = () => {
     );
   };
 
+  const canMarkWorkoutForDay = (dayName: string) => {
+    const today = new Date();
+    const dayIndex = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'].indexOf(dayName);
+    const todayIndex = today.getDay();
+    
+    // Only allow marking workouts for today
+    return dayIndex === todayIndex;
+  };
+
   return {
     completions,
     isLoading,
@@ -163,6 +188,7 @@ export const useWorkoutCompletions = () => {
     markWorkoutComplete,
     unmarkWorkoutComplete,
     isWorkoutCompletedToday,
+    canMarkWorkoutForDay,
     refreshCompletions: fetchCompletions
   };
 };
