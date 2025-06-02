@@ -5,18 +5,26 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Calendar as CalendarIcon, Clock } from 'lucide-react';
 import { useWorkoutSplits } from '@/hooks/useWorkoutSplits';
+import { useWorkoutCompletions } from '@/hooks/useWorkoutCompletions';
 import { GoogleCalendarSync } from '@/components/calendar/GoogleCalendarSync';
+import { WorkoutCompletionButton } from '@/components/workout/WorkoutCompletionButton';
 
 const SchedulePage = () => {
   const { savedSplit, isLoading } = useWorkoutSplits();
+  const { 
+    markWorkoutComplete, 
+    unmarkWorkoutComplete, 
+    isWorkoutCompletedToday,
+    isLoading: completionsLoading
+  } = useWorkoutCompletions();
 
   // Generate schedule based on saved split or use default
   const generateWorkoutSchedule = () => {
     if (!savedSplit || !savedSplit.split_data) {
       // Default schedule when no split is saved
       return [
-        { day: 'Monday', workout: 'Push Day', time: '6:00 AM', duration: '45 min', completed: true },
-        { day: 'Tuesday', workout: 'Pull Day', time: '6:00 AM', duration: '50 min', completed: true },
+        { day: 'Monday', workout: 'Push Day', time: '6:00 AM', duration: '45 min', completed: false },
+        { day: 'Tuesday', workout: 'Pull Day', time: '6:00 AM', duration: '50 min', completed: false },
         { day: 'Wednesday', workout: 'Legs Day', time: '6:00 AM', duration: '55 min', completed: false },
         { day: 'Thursday', workout: 'Rest & Recovery', time: '-', duration: '-', completed: false },
         { day: 'Friday', workout: 'Upper Body', time: '6:00 AM', duration: '45 min', completed: false },
@@ -52,12 +60,22 @@ const SchedulePage = () => {
         workout: splitDay.name,
         time: index < 5 ? '6:00 AM' : '7:00 AM',
         duration: '45 min',
-        completed: index < 2 // Mark first two as completed for demo
+        completed: false
       };
     });
   };
 
   const workoutSchedule = generateWorkoutSchedule();
+
+  const handleWorkoutToggle = async (day: string, workout: string) => {
+    const isCompleted = isWorkoutCompletedToday(day);
+    
+    if (isCompleted) {
+      await unmarkWorkoutComplete(day);
+    } else {
+      await markWorkoutComplete(day, workout);
+    }
+  };
 
   return (
     <AppLayout>
@@ -117,13 +135,16 @@ const SchedulePage = () => {
                         )}
                       </div>
                     </div>
-                    <div>
-                      {item.completed ? (
-                        <Badge className="bg-green-500/20 text-green-400 hover:bg-green-500/30">Completed</Badge>
-                      ) : item.time === '-' ? (
-                        <Badge className="bg-slate-600/50 text-slate-300 hover:bg-slate-600/80">Rest Day</Badge>
+                    <div className="flex items-center gap-3">
+                      {item.time !== '-' ? (
+                        <WorkoutCompletionButton
+                          isCompleted={isWorkoutCompletedToday(item.day)}
+                          onToggle={() => handleWorkoutToggle(item.day, item.workout)}
+                          disabled={completionsLoading}
+                          workoutName={item.workout}
+                        />
                       ) : (
-                        <Badge className="bg-blue-500/20 text-blue-400 hover:bg-blue-500/30">Upcoming</Badge>
+                        <Badge className="bg-slate-600/50 text-slate-300 hover:bg-slate-600/80">Rest Day</Badge>
                       )}
                     </div>
                   </div>

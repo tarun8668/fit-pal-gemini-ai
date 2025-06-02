@@ -276,6 +276,33 @@ export type Database = {
         }
         Relationships: []
       }
+      workout_completions: {
+        Row: {
+          completion_date: string
+          created_at: string
+          id: string
+          user_id: string
+          workout_day: string
+          workout_name: string
+        }
+        Insert: {
+          completion_date?: string
+          created_at?: string
+          id?: string
+          user_id: string
+          workout_day: string
+          workout_name: string
+        }
+        Update: {
+          completion_date?: string
+          created_at?: string
+          id?: string
+          user_id?: string
+          workout_day?: string
+          workout_name?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

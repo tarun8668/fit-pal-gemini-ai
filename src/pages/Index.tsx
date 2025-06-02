@@ -9,7 +9,9 @@ import { Dumbbell, Apple, Weight, MessageSquare } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { CalorieCalculator } from '@/components/calculators/CalorieCalculator';
 import { UserProfileForm } from '@/components/profile/UserProfileForm';
+import { StreakDisplay } from '@/components/streak/StreakDisplay';
 import { useAuth } from '@/context/AuthContext';
+import { useWorkoutCompletions } from '@/hooks/useWorkoutCompletions';
 import { supabase } from '@/integrations/supabase/client';
 
 const Index = () => {
@@ -34,6 +36,7 @@ const Index = () => {
   ];
 
   const { user } = useAuth();
+  const { streak, isLoading: streakLoading } = useWorkoutCompletions();
   const [profileExists, setProfileExists] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -99,6 +102,11 @@ const Index = () => {
               </div>
             </CardContent>
           </Card>
+
+          {/* Streak Display */}
+          <div className="col-span-1 md:col-span-2">
+            <StreakDisplay streak={streak} isLoading={streakLoading} />
+          </div>
           
           {/* Feature Cards */}
           <Link to="/workouts" className="block">
