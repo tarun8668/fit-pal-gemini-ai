@@ -1,13 +1,22 @@
-
 import React from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { Settings, Bell, Moon, Sun, Shield, Database, User } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Settings, Bell, Moon, Sun, Shield, Database, User, Calendar, Clock } from 'lucide-react';
+import { useGoogleCalendar } from '@/hooks/useGoogleCalendar';
 
 const SettingsPage = () => {
+  const { 
+    isInitialized, 
+    isSignedIn, 
+    isLoading, 
+    signInToGoogle, 
+    signOutFromGoogle 
+  } = useGoogleCalendar();
+
   return (
     <AppLayout>
       <div className="space-y-6">
@@ -50,6 +59,84 @@ const SettingsPage = () => {
           </div>
           
           <div className="md:col-span-2 space-y-6">
+            <Card className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-md border-slate-700">
+              <CardHeader>
+                <CardTitle className="text-slate-100 flex items-center gap-2">
+                  <Calendar className="h-5 w-5" />
+                  Google Calendar Integration
+                </CardTitle>
+                <CardDescription className="text-slate-400">
+                  Sync your workout schedule with Google Calendar and get reminders
+                </CardDescription>
+                {isSignedIn && (
+                  <Badge className="bg-green-500/20 text-green-400 w-fit">
+                    Connected to Google Calendar
+                  </Badge>
+                )}
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {!isInitialized ? (
+                  <div className="flex items-center justify-center p-4">
+                    <p className="text-slate-400">Loading Google Calendar integration...</p>
+                  </div>
+                ) : !isSignedIn ? (
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2 text-sm text-slate-300">
+                      <Bell className="h-4 w-4" />
+                      <span>Get reminders 1 hour and 15 minutes before workouts</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm text-slate-300">
+                      <Clock className="h-4 w-4" />
+                      <span>Automatically sync your weekly workout schedule</span>
+                    </div>
+                    <Button 
+                      onClick={signInToGoogle} 
+                      disabled={isLoading}
+                      className="w-full bg-blue-600 hover:bg-blue-700"
+                    >
+                      {isLoading ? 'Connecting...' : 'Connect Google Calendar'}
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 text-sm text-slate-300">
+                        <Bell className="h-4 w-4 text-green-400" />
+                        <span>Calendar sync is enabled</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-sm text-slate-300">
+                        <Clock className="h-4 w-4 text-green-400" />
+                        <span>Reminders are active for your workouts</span>
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <div className="flex flex-col gap-0.5">
+                        <Label htmlFor="calendar-sync" className="text-slate-100">Auto-sync workouts</Label>
+                        <span className="text-xs text-slate-400">Automatically add new workouts to calendar</span>
+                      </div>
+                      <Switch id="calendar-sync" defaultChecked />
+                    </div>
+                    <div className="flex gap-2">
+                      <Button 
+                        variant="outline" 
+                        className="flex-1 border-slate-600 text-slate-300 hover:bg-slate-700"
+                        asChild
+                      >
+                        <a href="/schedule">Go to Schedule</a>
+                      </Button>
+                      <Button 
+                        onClick={signOutFromGoogle} 
+                        variant="outline"
+                        className="border-red-600 text-red-400 hover:bg-red-600/10"
+                      >
+                        Disconnect
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+            
             <Card className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-md border-slate-700">
               <CardHeader>
                 <CardTitle className="text-slate-100">App Settings</CardTitle>
