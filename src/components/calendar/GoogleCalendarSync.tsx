@@ -3,7 +3,8 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Calendar, Clock, Bell } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Calendar, Clock, Bell, AlertTriangle } from 'lucide-react';
 import { useGoogleCalendar } from '@/hooks/useGoogleCalendar';
 
 interface GoogleCalendarSyncProps {
@@ -21,6 +22,7 @@ export const GoogleCalendarSync: React.FC<GoogleCalendarSyncProps> = ({ workoutS
     isInitialized, 
     isSignedIn, 
     isLoading, 
+    configurationError,
     signInToGoogle, 
     signOutFromGoogle, 
     syncWorkoutSchedule 
@@ -56,18 +58,39 @@ export const GoogleCalendarSync: React.FC<GoogleCalendarSyncProps> = ({ workoutS
         <CardDescription className="text-slate-400">
           Sync your workout schedule with Google Calendar and get reminders
         </CardDescription>
-        {isSignedIn && (
+        {isSignedIn && !configurationError && (
           <Badge className="bg-green-500/20 text-green-400 w-fit">
             Connected to Google Calendar
           </Badge>
         )}
       </CardHeader>
       <CardContent className="space-y-4">
-        {!isSignedIn ? (
+        {configurationError ? (
+          <Alert className="border-amber-600 bg-amber-900/20">
+            <AlertTriangle className="h-4 w-4 text-amber-400" />
+            <AlertDescription className="text-amber-200">
+              <strong>Configuration Required:</strong> {configurationError}
+              <br />
+              <br />
+              To enable Google Calendar sync:
+              <br />
+              1. Go to <a href="https://console.developers.google.com/" target="_blank" rel="noopener noreferrer" className="underline text-amber-100">Google Cloud Console</a>
+              <br />
+              2. Add this domain as an authorized origin: <code className="bg-slate-800 px-1 rounded text-xs">{window.location.origin}</code>
+              <br />
+              3. Refresh this page after making changes
+            </AlertDescription>
+          </Alert>
+        ) : !isSignedIn ? (
           <div className="space-y-3">
-            <p className="text-slate-300 text-sm">
-              Connect your Google Calendar to automatically sync your workout schedule and receive reminders.
-            </p>
+            <div className="flex items-center gap-2 text-sm text-slate-300">
+              <Bell className="h-4 w-4" />
+              <span>Get reminders 1 hour and 15 minutes before workouts</span>
+            </div>
+            <div className="flex items-center gap-2 text-sm text-slate-300">
+              <Clock className="h-4 w-4" />
+              <span>Automatically sync your weekly workout schedule</span>
+            </div>
             <Button 
               onClick={signInToGoogle} 
               disabled={isLoading}
@@ -79,11 +102,11 @@ export const GoogleCalendarSync: React.FC<GoogleCalendarSyncProps> = ({ workoutS
         ) : (
           <div className="space-y-3">
             <div className="flex items-center gap-2 text-sm text-slate-300">
-              <Bell className="h-4 w-4" />
+              <Bell className="h-4 w-4 text-green-400" />
               <span>Reminders will be set 1 hour before and 15 minutes before each workout</span>
             </div>
             <div className="flex items-center gap-2 text-sm text-slate-300">
-              <Clock className="h-4 w-4" />
+              <Clock className="h-4 w-4 text-green-400" />
               <span>Events will be created for this week's workout schedule</span>
             </div>
             <div className="flex gap-2">

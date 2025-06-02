@@ -14,10 +14,11 @@ export const useGoogleCalendar = () => {
   const [isInitialized, setIsInitialized] = useState(false);
   const [isSignedIn, setIsSignedIn] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [configurationError, setConfigurationError] = useState<string | null>(null);
   const { toast } = useToast();
   const { user } = useAuth();
 
-  const GOOGLE_CLIENT_ID = '887596394611-0pqeerc2fauub04b6h23pi583a2q9vak.apps.googleusercontent.com'; // This needs to be configured
+  const GOOGLE_CLIENT_ID = '887596394611-0pqeerc2fauub04b6h23pi583a2q9vak.apps.googleusercontent.com';
   const DISCOVERY_DOC = 'https://www.googleapis.com/discovery/v1/apis/calendar/v3/rest';
   const SCOPES = 'https://www.googleapis.com/auth/calendar';
 
@@ -31,6 +32,10 @@ export const useGoogleCalendar = () => {
       const script = document.createElement('script');
       script.src = 'https://apis.google.com/js/api.js';
       script.onload = () => loadGapi();
+      script.onerror = () => {
+        setConfigurationError('Failed to load Google API script');
+        setIsInitialized(true);
+      };
       document.head.appendChild(script);
     } else {
       loadGapi();
@@ -54,18 +59,35 @@ export const useGoogleCalendar = () => {
 
       // Listen for sign-in state changes
       authInstance.isSignedIn.listen(setIsSignedIn);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error initializing Google API:', error);
+      
+      if (error.error === 'idpiframe_initialization_failed') {
+        setConfigurationError(
+          'Google Calendar integration requires domain authorization. The current domain needs to be added to the Google Cloud Console as an authorized origin.'
+        );
+      } else {
+        setConfigurationError('Failed to initialize Google Calendar. Please check your configuration.');
+      }
+      
+      setIsInitialized(true);
       toast({
-        title: "Error",
-        description: "Failed to initialize Google Calendar. Please check your configuration.",
+        title: "Google Calendar Setup Required",
+        description: "Please configure the authorized domains in Google Cloud Console to enable calendar sync.",
         variant: "destructive",
       });
     }
   };
 
   const signInToGoogle = async () => {
-    if (!isInitialized) return;
+    if (!isInitialized || configurationError) {
+      toast({
+        title: "Configuration Error",
+        description: configurationError || "Google Calendar is not properly configured.",
+        variant: "destructive",
+      });
+      return;
+    }
     
     setIsLoading(true);
     try {
@@ -88,7 +110,7 @@ export const useGoogleCalendar = () => {
   };
 
   const signOutFromGoogle = async () => {
-    if (!isInitialized) return;
+    if (!isInitialized || configurationError) return;
     
     try {
       const authInstance = window.gapi.auth2.getAuthInstance();
@@ -109,10 +131,10 @@ export const useGoogleCalendar = () => {
     end: string;
     reminders?: boolean;
   }) => {
-    if (!isSignedIn) {
+    if (!isSignedIn || configurationError) {
       toast({
         title: "Error",
-        description: "Please sign in to Google Calendar first.",
+        description: configurationError || "Please sign in to Google Calendar first.",
         variant: "destructive",
       });
       return;
@@ -157,10 +179,10 @@ export const useGoogleCalendar = () => {
     time: string;
     duration: string;
   }>) => {
-    if (!isSignedIn) {
+    if (!isSignedIn || configurationError) {
       toast({
         title: "Error",
-        description: "Please sign in to Google Calendar first.",
+        description: configurationError || "Please sign in to Google Calendar first.",
         variant: "destructive",
       });
       return;
@@ -218,6 +240,7 @@ export const useGoogleCalendar = () => {
     isInitialized,
     isSignedIn,
     isLoading,
+    configurationError,
     signInToGoogle,
     signOutFromGoogle,
     syncWorkoutSchedule,

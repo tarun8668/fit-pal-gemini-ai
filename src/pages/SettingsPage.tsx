@@ -13,6 +13,7 @@ const SettingsPage = () => {
     isInitialized, 
     isSignedIn, 
     isLoading, 
+    configurationError,
     signInToGoogle, 
     signOutFromGoogle 
   } = useGoogleCalendar();
@@ -68,7 +69,7 @@ const SettingsPage = () => {
                 <CardDescription className="text-slate-400">
                   Sync your workout schedule with Google Calendar and get reminders
                 </CardDescription>
-                {isSignedIn && (
+                {isSignedIn && !configurationError && (
                   <Badge className="bg-green-500/20 text-green-400 w-fit">
                     Connected to Google Calendar
                   </Badge>
@@ -78,6 +79,26 @@ const SettingsPage = () => {
                 {!isInitialized ? (
                   <div className="flex items-center justify-center p-4">
                     <p className="text-slate-400">Loading Google Calendar integration...</p>
+                  </div>
+                ) : configurationError ? (
+                  <div className="space-y-3">
+                    <div className="p-4 border border-amber-600 bg-amber-900/20 rounded-lg">
+                      <div className="flex items-start gap-2">
+                        <span className="text-amber-400">⚠️</span>
+                        <div>
+                          <p className="text-amber-200 font-medium">Configuration Required</p>
+                          <p className="text-amber-200/80 text-sm mt-1">{configurationError}</p>
+                          <div className="mt-3 text-xs text-amber-200/60">
+                            <p>To enable Google Calendar sync:</p>
+                            <ol className="list-decimal list-inside mt-1 space-y-1">
+                              <li>Go to <a href="https://console.developers.google.com/" target="_blank" rel="noopener noreferrer" className="underline">Google Cloud Console</a></li>
+                              <li>Add this domain as authorized origin: <code className="bg-slate-800 px-1 rounded">{window.location.origin}</code></li>
+                              <li>Refresh this page after making changes</li>
+                            </ol>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 ) : !isSignedIn ? (
                   <div className="space-y-3">
