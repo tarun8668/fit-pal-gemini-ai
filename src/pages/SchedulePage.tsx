@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { PremiumPageWrapper } from '@/components/membership/PremiumPageWrapper';
@@ -5,7 +6,6 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Calendar } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { WorkoutCompletionButton } from '@/components/workout/WorkoutCompletionButton';
-import { isToday } from 'date-fns';
 import { useWorkoutCompletions } from '@/hooks/useWorkoutCompletions';
 
 const weekDays = [
@@ -44,7 +44,27 @@ const weekDays = [
 ];
 
 const SchedulePage = () => {
-  const { isWorkoutCompleted, toggleWorkoutCompletion } = useWorkoutCompletions();
+  const { 
+    isWorkoutCompletedToday, 
+    markWorkoutComplete, 
+    unmarkWorkoutComplete, 
+    canMarkWorkoutForDay 
+  } = useWorkoutCompletions();
+
+  const handleToggleWorkout = async (workoutDay: string, workoutName: string, dayName: string) => {
+    const isCompleted = isWorkoutCompletedToday(workoutDay);
+    
+    if (isCompleted) {
+      await unmarkWorkoutComplete(workoutDay);
+    } else {
+      await markWorkoutComplete(workoutDay, workoutName);
+    }
+  };
+
+  const isToday = (dateString: string) => {
+    const today = new Date().toISOString().split('T')[0];
+    return dateString === today;
+  };
 
   return (
     <AppLayout>
@@ -88,8 +108,8 @@ const SchedulePage = () => {
                           <p className="text-xs text-slate-400">{workout.type}</p>
                           
                           <WorkoutCompletionButton
-                            isCompleted={isWorkoutCompleted(day.date, workout.name)}
-                            onToggle={() => toggleWorkoutCompletion(day.date, workout.name, day.name)}
+                            isCompleted={isWorkoutCompletedToday(day.date)}
+                            onToggle={() => handleToggleWorkout(day.date, workout.name, day.name)}
                             workoutName={workout.name}
                             canMarkToday={isToday(day.date)}
                           />
