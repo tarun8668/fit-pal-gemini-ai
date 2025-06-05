@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import type { ReactElement } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -70,14 +71,37 @@ const MembershipPage = () => {
         throw new Error('User not authenticated');
       }
 
-      const orderId = `order_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
-      
+      // Create Razorpay instance
+      const instance = new window.Razorpay({
+        key_id: 'rzp_test_HM1cyFfI10djqm',
+        key_secret: 'US3CErerzqK957J18N3nwJFK'
+      });
+
+      // Create order using instance
+      const order = await instance.orders.create({
+        amount: plan.price * 100,
+        currency: "INR",
+        receipt: `receipt_${Date.now()}`,
+        notes: {
+          user_id: userId,
+          plan_id: plan.id,
+          plan_type: "monthly"
+        }
+      });
+
+      console.log('Razorpay order created:', order);
+
+      if (!order.id) {
+        throw new Error('No order ID received from Razorpay');
+      }
+
+      // Create order in our database
       const { data: orderData, error: orderError } = await supabase
         .from('orders')
         .insert([
           {
             user_id: userId,
-            order_id: orderId,
+            order_id: order.id,
             plan_id: plan.id,
             amount: plan.price,
             currency: 'INR',
@@ -88,58 +112,18 @@ const MembershipPage = () => {
         .single();
 
       if (orderError) {
-        console.error('Order creation error:', orderError);
-        throw new Error('Failed to create order');
+        throw new Error(`Failed to create database order: ${orderError.message}`);
       }
 
-      console.log('Order created successfully:', orderData);
-      return orderData;
+      return order.id;
     } catch (error) {
       console.error('Error creating order:', error);
-      throw error;
-    }
-  };
-
-  const verifyPayment = async (paymentDetails: any) => {
-    try {
-      console.log('Starting payment verification:', paymentDetails);
-      
-      const { data, error } = await supabase.functions.invoke('verify-payment', {
-        body: {
-          razorpay_payment_id: paymentDetails.razorpay_payment_id,
-          razorpay_order_id: paymentDetails.razorpay_order_id,
-          razorpay_signature: paymentDetails.razorpay_signature,
-          user_id: userId
-        }
-      });
-
-      console.log('Payment verification response:', { data, error });
-
-      if (error) {
-        console.error('Payment verification error:', error);
-        throw new Error(error.message || 'Payment verification failed');
-      }
-
-      if (data?.success) {
-        console.log('Payment verified successfully');
-        toast({
-          title: "Payment Successful!",
-          description: "Your premium membership is now active.",
-        });
-        
-        await checkMembership();
-        return true;
-      } else {
-        throw new Error(data?.error || 'Payment verification failed');
-      }
-    } catch (error) {
-      console.error('Payment verification failed:', error);
       toast({
-        title: "Payment Verification Failed",
-        description: error instanceof Error ? error.message : "Please contact support if payment was deducted.",
+        title: "Payment Error",
+        description: error instanceof Error ? error.message : "Failed to create order",
         variant: "destructive",
       });
-      return false;
+      throw error;
     }
   };
 
@@ -156,39 +140,22 @@ const MembershipPage = () => {
     setLoading(true);
     
     try {
-      console.log('Loading Razorpay SDK...');
       const res = await loadRazorpay();
       if (!res) {
-        throw new Error("Razorpay SDK failed to load. Please check your internet connection and try again.");
+        throw new Error("Razorpay SDK failed to load");
       }
-
-      console.log('Creating order...');
-      const orderData = await createOrder();
-      
-      console.log('Getting Razorpay configuration...');
-      const { data: configData, error: configError } = await supabase.functions.invoke('create-payment', {
-        body: {
-          planId: plan.id,
-          userId: userId
-        }
-      });
-
-      if (configError) {
-        console.error('Configuration error:', configError);
-        throw new Error('Failed to get payment configuration');
-      }
-
-      console.log('Razorpay config received:', configData);
 
       const options = {
-        key: configData?.key_id || "rzp_live_AFBMj1SG3UGbjg",
+        key: 'rzp_live_AFBMj1SG3UGbjg',
         amount: plan.price * 100,
         currency: "INR",
         name: "Consist Fitness",
         description: "Monthly Premium Membership",
-        order_id: orderData.order_id,
+        image: "https://consistfitness.com/logo.png",
         prefill: {
           name: "Fitness User",
+          email: "test@example.com",
+          contact: "9999999999"
         },
         notes: {
           user_id: userId,
@@ -198,22 +165,45 @@ const MembershipPage = () => {
           color: "#8B5CF6"
         },
         handler: async function(response: any) {
-          console.log("Payment successful, response:", response);
-          
           try {
-            const verificationSuccess = await verifyPayment(response);
-            if (verificationSuccess) {
-              console.log("Payment verification successful");
+            // Create order in database
+            const { data: orderData, error: orderError } = await supabase
+              .from('orders')
+              .insert([
+                {
+                  user_id: userId,
+                  order_id: response.razorpay_order_id,
+                  payment_id: response.razorpay_payment_id,
+                  plan_id: plan.id,
+                  amount: plan.price,
+                  currency: 'INR',
+                  status: 'completed'
+                }
+              ])
+              .select()
+              .single();
+
+            if (orderError) {
+              throw new Error(`Failed to create database order: ${orderError.message}`);
             }
-          } catch (verifyError) {
-            console.error("Payment verification error:", verifyError);
+
+            toast({
+              title: "Payment Successful!",
+              description: "Your premium membership is now active.",
+            });
+            await checkMembership();
+          } catch (error) {
+            console.error('Payment verification failed:', error);
+            toast({
+              title: "Payment Verification Failed",
+              description: "Please contact support if payment was deducted.",
+              variant: "destructive",
+            });
           }
-          
           setLoading(false);
         },
         modal: {
           ondismiss: function() {
-            console.log("Payment modal dismissed by user");
             setLoading(false);
           },
           escape: false,
@@ -221,12 +211,9 @@ const MembershipPage = () => {
         }
       };
 
-      console.log("Opening Razorpay with options:", options);
-
-      const paymentObject = new window.Razorpay(options);
+      const rzp1 = new window.Razorpay(options);
       
-      paymentObject.on('payment.failed', function (response: any) {
-        console.error('Payment failed:', response.error);
+      rzp1.on('payment.failed', function (response: any) {
         toast({
           title: "Payment Failed",
           description: response.error.description || "Payment failed. Please try again.",
@@ -235,13 +222,13 @@ const MembershipPage = () => {
         setLoading(false);
       });
 
-      paymentObject.open();
+      rzp1.open();
       
-    } catch (err: any) {
+    } catch (err) {
       console.error("Payment initialization error:", err);
       toast({
         title: "Payment Error",
-        description: err.message || "Failed to initialize payment. Please try again.",
+        description: err instanceof Error ? err.message : "Failed to initialize payment",
         variant: "destructive",
       });
       setLoading(false);
@@ -284,22 +271,12 @@ const MembershipPage = () => {
                 <div className="w-full max-w-md mx-auto p-4 border border-border rounded-lg bg-muted/50">
                   <h3 className="font-medium mb-3">Your Benefits Include:</h3>
                   <ul className="space-y-2 text-left">
-                    <li className="flex items-center gap-2">
-                      <Check className="h-4 w-4 text-green-500" />
-                      <span>Full workout programs</span>
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <Check className="h-4 w-4 text-green-500" />
-                      <span>Personalized diet plans</span>
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <Check className="h-4 w-4 text-green-500" />
-                      <span>Advanced analytics</span>
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <Check className="h-4 w-4 text-green-500" />
-                      <span>Premium support</span>
-                    </li>
+                    {plan.features.map((feature, index) => (
+                      <li key={index} className="flex items-center gap-2">
+                        <Check className="h-4 w-4 text-green-500" />
+                        <span>{feature}</span>
+                      </li>
+                    ))}
                   </ul>
                 </div>
               </div>
@@ -353,6 +330,7 @@ const MembershipPage = () => {
                 </CardContent>
                 <CardFooter>
                   <Button 
+                    id="rzp-button1"
                     className="w-full bg-purple-600 hover:bg-purple-700"
                     onClick={handlePayment}
                     disabled={loading}
@@ -364,8 +342,8 @@ const MembershipPage = () => {
                       </span>
                     ) : (
                       <>
-                        <CreditCard className="h-4 w-4" />
-                        Subscribe Now
+                        <CreditCard className="h-4 w-4 mr-2" />
+                        Pay Now
                       </>
                     )}
                   </Button>
