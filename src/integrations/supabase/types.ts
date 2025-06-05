@@ -135,6 +135,42 @@ export type Database = {
         }
         Relationships: []
       }
+      payment_verifications: {
+        Row: {
+          created_at: string
+          id: string
+          razorpay_order_id: string
+          razorpay_payment_id: string
+          razorpay_signature: string
+          updated_at: string
+          user_id: string
+          verification_status: string
+          verified_at: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          razorpay_order_id: string
+          razorpay_payment_id: string
+          razorpay_signature: string
+          updated_at?: string
+          user_id: string
+          verification_status?: string
+          verified_at?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          razorpay_order_id?: string
+          razorpay_payment_id?: string
+          razorpay_signature?: string
+          updated_at?: string
+          user_id?: string
+          verification_status?: string
+          verified_at?: string | null
+        }
+        Relationships: []
+      }
       user_diet_plans: {
         Row: {
           carbs_target: number

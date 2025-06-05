@@ -53,10 +53,38 @@ serve(async (req) => {
       );
     }
 
+    // Store payment verification attempt
+    const { data: verificationData, error: verificationError } = await supabaseClient
+      .from('payment_verifications')
+      .insert([
+        {
+          user_id,
+          razorpay_payment_id,
+          razorpay_order_id,
+          razorpay_signature,
+          verification_status: 'processing'
+        }
+      ])
+      .select()
+      .single();
+
+    if (verificationError) {
+      console.error('Error storing payment verification:', verificationError);
+    }
+
     // Verify the Razorpay signature to ensure the payment is valid
     const secretKey = Deno.env.get('RAZORPAY_KEY_SECRET') ?? '';
     if (!secretKey) {
       console.error('Razorpay secret key not configured');
+      
+      // Update verification status to failed
+      if (verificationData) {
+        await supabaseClient
+          .from('payment_verifications')
+          .update({ verification_status: 'failed' })
+          .eq('id', verificationData.id);
+      }
+      
       return new Response(
         JSON.stringify({ error: 'Payment verification configuration error' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -77,6 +105,15 @@ serve(async (req) => {
 
     if (!isSignatureValid) {
       console.error('Invalid signature');
+      
+      // Update verification status to failed
+      if (verificationData) {
+        await supabaseClient
+          .from('payment_verifications')
+          .update({ verification_status: 'invalid_signature' })
+          .eq('id', verificationData.id);
+      }
+      
       return new Response(
         JSON.stringify({ error: 'Invalid signature' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -88,12 +125,20 @@ serve(async (req) => {
     // Get order details to determine subscription details
     const { data: orderData, error: orderError } = await supabaseClient
       .from('orders')
-      .select('plan_id')
+      .select('plan_id, amount')
       .eq('order_id', razorpay_order_id)
       .single();
 
     if (orderError) {
       console.error('Error fetching order:', orderError);
+      
+      // Update verification status to failed
+      if (verificationData) {
+        await supabaseClient
+          .from('payment_verifications')
+          .update({ verification_status: 'order_not_found' })
+          .eq('id', verificationData.id);
+      }
       
       return new Response(
         JSON.stringify({ error: 'Failed to fetch order details' }),
@@ -106,12 +151,24 @@ serve(async (req) => {
     // Update order status in the database
     const { error: updateOrderError } = await supabaseClient
       .from('orders')
-      .update({ status: 'completed', payment_id: razorpay_payment_id })
+      .update({ 
+        status: 'completed', 
+        payment_id: razorpay_payment_id,
+        updated_at: new Date().toISOString()
+      })
       .eq('order_id', razorpay_order_id)
       .eq('user_id', user_id);
 
     if (updateOrderError) {
       console.error('Error updating order:', updateOrderError);
+      
+      // Update verification status to failed
+      if (verificationData) {
+        await supabaseClient
+          .from('payment_verifications')
+          .update({ verification_status: 'order_update_failed' })
+          .eq('id', verificationData.id);
+      }
       
       return new Response(
         JSON.stringify({ error: 'Failed to update order' }),
@@ -120,6 +177,10 @@ serve(async (req) => {
     }
 
     console.log('Order updated successfully');
+
+    // Calculate subscription end date (1 month from now)
+    const subscriptionEndDate = new Date();
+    subscriptionEndDate.setMonth(subscriptionEndDate.getMonth() + 1);
 
     // Create or update user membership
     const { error: membershipError } = await supabaseClient
@@ -132,10 +193,20 @@ serve(async (req) => {
           order_id: razorpay_order_id,
           updated_at: new Date().toISOString()
         }
-      ]);
+      ], {
+        onConflict: 'user_id'
+      });
 
     if (membershipError) {
       console.error('Error updating membership:', membershipError);
+      
+      // Update verification status to failed
+      if (verificationData) {
+        await supabaseClient
+          .from('payment_verifications')
+          .update({ verification_status: 'membership_update_failed' })
+          .eq('id', verificationData.id);
+      }
       
       return new Response(
         JSON.stringify({ error: 'Failed to update membership' }),
@@ -145,11 +216,27 @@ serve(async (req) => {
 
     console.log('Membership activated successfully');
 
+    // Update verification status to successful
+    if (verificationData) {
+      await supabaseClient
+        .from('payment_verifications')
+        .update({ 
+          verification_status: 'verified',
+          verified_at: new Date().toISOString()
+        })
+        .eq('id', verificationData.id);
+    }
+
     // Return success response
     return new Response(
       JSON.stringify({ 
         success: true,
-        message: 'Payment verified and membership activated'
+        message: 'Payment verified and membership activated',
+        membership: {
+          status: 'active',
+          plan_id: orderData.plan_id,
+          amount: orderData.amount
+        }
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
