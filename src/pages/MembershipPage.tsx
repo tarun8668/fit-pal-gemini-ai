@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Check, CreditCard, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { useMembership } from '@/context/MembershipContext';
 
 declare global {
   interface Window {
@@ -18,8 +19,7 @@ const MembershipPage = () => {
   const { toast } = useToast();
   const [loading, setLoading] = useState<boolean>(false);
   const [userId, setUserId] = useState<string | null>(null);
-  const [hasMembership, setHasMembership] = useState(false);
-  const [membershipLoading, setMembershipLoading] = useState(true);
+  const { hasMembership, isLoading: membershipLoading, checkMembership } = useMembership();
 
   const plan = {
     id: 'monthly',
@@ -36,48 +36,19 @@ const MembershipPage = () => {
   };
 
   useEffect(() => {
-    async function checkUserAndMembership() {
+    async function getUser() {
       try {
         const { data: { user } } = await supabase.auth.getUser();
-        
         if (user) {
           setUserId(user.id);
-          
-          // Check if user has an active membership
-          const { data: memberships, error } = await supabase
-            .from('user_memberships')
-            .select('*')
-            .eq('user_id', user.id)
-            .eq('status', 'active')
-            .maybeSingle();
-            
-          if (error) {
-            console.error('Error fetching membership:', error);
-            toast({
-              title: "Error",
-              description: "Failed to load membership status",
-              variant: "destructive",
-            });
-          }
-          
-          setHasMembership(!!memberships);
-          setMembershipLoading(false);
-        } else {
-          setMembershipLoading(false);
         }
       } catch (err) {
-        console.error('Error checking user and membership:', err);
-        setMembershipLoading(false);
-        toast({
-          title: "Error",
-          description: "Failed to check membership status",
-          variant: "destructive",
-        });
+        console.error('Error getting user:', err);
       }
     }
     
-    checkUserAndMembership();
-  }, [toast]);
+    getUser();
+  }, []);
 
   const loadRazorpay = () => {
     return new Promise((resolve) => {
@@ -96,9 +67,11 @@ const MembershipPage = () => {
 
   const createOrder = async () => {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      // Create order in database
+      if (!userId) {
+        throw new Error('User not authenticated');
+      }
+
+      // Create order in database first
       const orderId = `order_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
       
       const { data: orderData, error: orderError } = await supabase
@@ -117,9 +90,11 @@ const MembershipPage = () => {
         .single();
 
       if (orderError) {
+        console.error('Order creation error:', orderError);
         throw new Error('Failed to create order');
       }
 
+      console.log('Order created successfully:', orderData);
       return orderData;
     } catch (error) {
       console.error('Error creating order:', error);
@@ -129,7 +104,7 @@ const MembershipPage = () => {
 
   const verifyPayment = async (paymentDetails: any) => {
     try {
-      console.log('Verifying payment:', paymentDetails);
+      console.log('Starting payment verification:', paymentDetails);
       
       const { data, error } = await supabase.functions.invoke('verify-payment', {
         body: {
@@ -140,24 +115,28 @@ const MembershipPage = () => {
         }
       });
 
+      console.log('Payment verification response:', { data, error });
+
       if (error) {
         console.error('Payment verification error:', error);
         throw new Error(error.message || 'Payment verification failed');
       }
 
       if (data?.success) {
-        console.log('Payment verified successfully:', data);
+        console.log('Payment verified successfully');
         toast({
           title: "Payment Successful!",
           description: "Your premium membership is now active.",
         });
-        setHasMembership(true);
+        
+        // Refresh membership status
+        await checkMembership();
         return true;
       } else {
         throw new Error(data?.error || 'Payment verification failed');
       }
     } catch (error) {
-      console.error('Payment verification error:', error);
+      console.error('Payment verification failed:', error);
       toast({
         title: "Payment Verification Failed",
         description: error instanceof Error ? error.message : "Please contact support if payment was deducted.",
@@ -170,7 +149,7 @@ const MembershipPage = () => {
   const handlePayment = async () => {
     if (!userId) {
       toast({
-        title: "Authentication required",
+        title: "Authentication Required",
         description: "Please log in to purchase a membership",
         variant: "destructive",
       });
@@ -181,22 +160,31 @@ const MembershipPage = () => {
     
     try {
       // Load Razorpay SDK
+      console.log('Loading Razorpay SDK...');
       const res = await loadRazorpay();
       if (!res) {
-        throw new Error("Razorpay SDK failed to load");
+        throw new Error("Razorpay SDK failed to load. Please check your internet connection and try again.");
       }
 
       // Create order
+      console.log('Creating order...');
       const orderData = await createOrder();
-      console.log('Order created:', orderData);
       
-      // Get Razorpay key from backend
-      const { data: configData } = await supabase.functions.invoke('create-payment', {
+      // Get Razorpay configuration
+      console.log('Getting Razorpay configuration...');
+      const { data: configData, error: configError } = await supabase.functions.invoke('create-payment', {
         body: {
           planId: plan.id,
           userId: userId
         }
       });
+
+      if (configError) {
+        console.error('Configuration error:', configError);
+        throw new Error('Failed to get payment configuration');
+      }
+
+      console.log('Razorpay config received:', configData);
 
       // Configure Razorpay options
       const options = {
@@ -217,36 +205,39 @@ const MembershipPage = () => {
           color: "#8B5CF6"
         },
         handler: async function(response: any) {
-          console.log("Payment response received:", response);
+          console.log("Payment successful, response:", response);
           
-          // Verify payment on backend
-          const verificationSuccess = await verifyPayment(response);
-          
-          if (!verificationSuccess) {
-            // Payment verification failed, but payment might have been successful
-            // Show appropriate message to user
-            console.log("Payment verification failed");
+          try {
+            // Verify payment
+            const verificationSuccess = await verifyPayment(response);
+            if (verificationSuccess) {
+              console.log("Payment verification successful");
+            }
+          } catch (verifyError) {
+            console.error("Payment verification error:", verifyError);
           }
           
           setLoading(false);
         },
         modal: {
           ondismiss: function() {
+            console.log("Payment modal dismissed by user");
             setLoading(false);
-            console.log("Payment modal dismissed");
           }
         }
       };
+
+      console.log("Opening Razorpay with options:", options);
 
       // Open Razorpay checkout
       const paymentObject = new window.Razorpay(options);
       paymentObject.open();
       
     } catch (err: any) {
-      console.error("Payment error:", err);
+      console.error("Payment initialization error:", err);
       toast({
-        title: "Error",
-        description: err.message || "Something went wrong. Please try again.",
+        title: "Payment Error",
+        description: err.message || "Failed to initialize payment. Please try again.",
         variant: "destructive",
       });
       setLoading(false);
