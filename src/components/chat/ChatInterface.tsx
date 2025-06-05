@@ -2,15 +2,21 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Send } from 'lucide-react';
+import { Send, Lock, Crown } from 'lucide-react';
 import { ChatMessage, MessageRole } from '@/types/chat';
 import { ChatBubble } from './ChatBubble';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { useMembership } from '@/context/MembershipContext';
+import { useChatLimits } from '@/hooks/useChatLimits';
+import { Link } from 'react-router-dom';
 
 export const ChatInterface: React.FC = () => {
+  const { hasMembership } = useMembership();
+  const { promptsUsed, canSendMessage, incrementPrompts } = useChatLimits();
+  
   const [messages, setMessages] = useState<ChatMessage[]>([
     { 
       id: '1', 
@@ -41,6 +47,16 @@ export const ChatInterface: React.FC = () => {
   const handleSend = async () => {
     if (inputValue.trim() === '') return;
     
+    // Check if user can send message (for non-premium users)
+    if (!hasMembership && !canSendMessage) {
+      toast({
+        title: "Daily Limit Reached",
+        description: "You've reached your daily limit of 2 AI prompts. Upgrade to premium for unlimited access!",
+        variant: "destructive"
+      });
+      return;
+    }
+    
     const userMessage: ChatMessage = {
       id: Date.now().toString(),
       role: 'user',
@@ -53,6 +69,11 @@ export const ChatInterface: React.FC = () => {
     setError(null);
     setStreamingContent('');
     setIsStreaming(true);
+    
+    // Increment prompts for non-premium users
+    if (!hasMembership) {
+      incrementPrompts();
+    }
     
     try {
       console.log('Sending message to Gemini:', inputValue);
@@ -132,6 +153,23 @@ export const ChatInterface: React.FC = () => {
         ref={scrollAreaRef as React.RefObject<HTMLDivElement>}
       >
         <div className="space-y-1 max-w-4xl mx-auto">
+          {/* Daily limit warning for non-premium users */}
+          {!hasMembership && (
+            <Alert className="mb-4 border-amber-500 bg-amber-50 dark:bg-amber-950">
+              <Crown className="h-4 w-4" />
+              <AlertDescription className="flex items-center justify-between">
+                <span>
+                  Free plan: {promptsUsed}/2 daily AI prompts used
+                </span>
+                <Link to="/membership">
+                  <Button size="sm" variant="outline" className="ml-2">
+                    Upgrade
+                  </Button>
+                </Link>
+              </AlertDescription>
+            </Alert>
+          )}
+          
           {error && (
             <Alert variant="destructive" className="mb-4">
               <AlertDescription>
@@ -176,17 +214,25 @@ export const ChatInterface: React.FC = () => {
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Ask about workouts, nutrition, or recovery..."
+            placeholder={
+              !hasMembership && !canSendMessage 
+                ? "Daily limit reached - upgrade for unlimited access"
+                : "Ask about workouts, nutrition, or recovery..."
+            }
             className="flex-1 bg-background border-gray-300 focus:border-gray-400"
-            disabled={isLoading || isStreaming}
+            disabled={isLoading || isStreaming || (!hasMembership && !canSendMessage)}
           />
           <Button 
             onClick={handleSend} 
-            disabled={isLoading || isStreaming || !inputValue.trim()}
+            disabled={isLoading || isStreaming || !inputValue.trim() || (!hasMembership && !canSendMessage)}
             className="bg-primary hover:bg-primary/90 text-primary-foreground"
             size="icon"
           >
-            <Send className="h-4 w-4" />
+            {!hasMembership && !canSendMessage ? (
+              <Lock className="h-4 w-4" />
+            ) : (
+              <Send className="h-4 w-4" />
+            )}
           </Button>
         </div>
       </div>

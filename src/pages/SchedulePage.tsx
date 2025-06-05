@@ -1,204 +1,108 @@
-
 import React from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { PremiumPageWrapper } from '@/components/membership/PremiumPageWrapper';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Calendar } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import { Calendar as CalendarIcon, Clock } from 'lucide-react';
-import { useWorkoutSplits } from '@/hooks/useWorkoutSplits';
-import { useWorkoutCompletions } from '@/hooks/useWorkoutCompletions';
-import { GoogleCalendarSync } from '@/components/calendar/GoogleCalendarSync';
 import { WorkoutCompletionButton } from '@/components/workout/WorkoutCompletionButton';
+import { isToday } from 'date-fns';
+import { useWorkoutCompletions } from '@/hooks/useWorkoutCompletions';
+
+const weekDays = [
+  {
+    name: 'Monday',
+    date: '2024-08-26',
+    workouts: [
+      { name: 'Chest & Triceps', duration: '60 mins', type: 'Strength' },
+      { name: 'HIIT Cardio', duration: '30 mins', type: 'Cardio' },
+    ],
+  },
+  {
+    name: 'Tuesday',
+    date: '2024-08-27',
+    workouts: [
+      { name: 'Back & Biceps', duration: '60 mins', type: 'Strength' },
+      { name: 'Yoga', duration: '45 mins', type: 'Flexibility' },
+    ],
+  },
+  {
+    name: 'Wednesday',
+    date: '2024-08-28',
+    workouts: [
+      { name: 'Legs & Shoulders', duration: '75 mins', type: 'Strength' },
+      { name: 'Swimming', duration: '45 mins', type: 'Cardio' },
+    ],
+  },
+  {
+    name: 'Thursday',
+    date: '2024-08-29',
+    workouts: [
+      { name: 'Full Body Circuit', duration: '60 mins', type: 'Strength' },
+      { name: 'Pilates', duration: '60 mins', type: 'Flexibility' },
+    ],
+  },
+];
 
 const SchedulePage = () => {
-  const { savedSplit, isLoading } = useWorkoutSplits();
-  const { 
-    markWorkoutComplete, 
-    unmarkWorkoutComplete, 
-    isWorkoutCompletedToday,
-    canMarkWorkoutForDay,
-    isLoading: completionsLoading
-  } = useWorkoutCompletions();
-
-  // Generate schedule based on saved split or use default
-  const generateWorkoutSchedule = () => {
-    if (!savedSplit || !savedSplit.split_data) {
-      // Default schedule when no split is saved
-      return [
-        { day: 'Monday', workout: 'Push Day', time: '6:00 AM', duration: '45 min', completed: false },
-        { day: 'Tuesday', workout: 'Pull Day', time: '6:00 AM', duration: '50 min', completed: false },
-        { day: 'Wednesday', workout: 'Legs Day', time: '6:00 AM', duration: '55 min', completed: false },
-        { day: 'Thursday', workout: 'Rest & Recovery', time: '-', duration: '-', completed: false },
-        { day: 'Friday', workout: 'Upper Body', time: '6:00 AM', duration: '45 min', completed: false },
-        { day: 'Saturday', workout: 'Lower Body', time: '7:00 AM', duration: '50 min', completed: false },
-        { day: 'Sunday', workout: 'Rest & Recovery', time: '-', duration: '-', completed: false },
-      ];
-    }
-
-    const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-    const splitDays = savedSplit.split_data.days;
-    
-    return days.map((day, index) => {
-      const splitDayIndex = index % splitDays.length;
-      const splitDay = splitDays[splitDayIndex];
-      
-      // Add rest days for shorter splits
-      const isRestDay = (savedSplit.split_type === 'full-body' && (index === 1 || index === 3 || index === 5 || index === 6)) ||
-                       (savedSplit.split_type === 'upper-lower' && (index === 2 || index === 4 || index === 6)) ||
-                       (savedSplit.split_type === 'bro-split' && (index === 5 || index === 6));
-
-      if (isRestDay) {
-        return {
-          day,
-          workout: 'Rest & Recovery',
-          time: '-',
-          duration: '-',
-          completed: false
-        };
-      }
-
-      return {
-        day,
-        workout: splitDay.name,
-        time: index < 5 ? '6:00 AM' : '7:00 AM',
-        duration: '45 min',
-        completed: false
-      };
-    });
-  };
-
-  const workoutSchedule = generateWorkoutSchedule();
-
-  const handleWorkoutToggle = async (day: string, workout: string) => {
-    const isCompleted = isWorkoutCompletedToday(day);
-    
-    if (isCompleted) {
-      await unmarkWorkoutComplete(day);
-    } else {
-      await markWorkoutComplete(day, workout);
-    }
-  };
+  const { isWorkoutCompleted, toggleWorkoutCompletion } = useWorkoutCompletions();
 
   return (
     <AppLayout>
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <h1 className="text-3xl font-bold">Workout Schedule</h1>
-          <div className="p-2 bg-primary/10 rounded-full">
-            <CalendarIcon className="h-6 w-6 text-primary" />
+      <PremiumPageWrapper featureName="Workout Schedule">
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <h1 className="text-3xl font-bold">Workout Schedule</h1>
+            <div className="p-2 bg-primary/10 rounded-full">
+              <Calendar className="h-6 w-6 text-primary" />
+            </div>
           </div>
-        </div>
-        
-        <Card className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-md border-slate-700">
-          <CardHeader>
-            <CardTitle className="text-slate-100">This Week</CardTitle>
-            <CardDescription className="text-slate-400">
-              {savedSplit ? `Your ${savedSplit.split_name} workout schedule` : 'Your scheduled workouts for the week'}
-            </CardDescription>
-            {savedSplit && (
-              <div className="mt-2">
-                <Badge className="bg-primary/20 text-primary">
-                  Active Split: {savedSplit.split_name}
-                </Badge>
-              </div>
-            )}
-          </CardHeader>
-          <CardContent>
-            {isLoading ? (
-              <div className="space-y-4">
-                {[...Array(7)].map((_, i) => (
-                  <div key={i} className="flex items-center justify-between p-3 rounded-lg bg-slate-800/50 animate-pulse">
-                    <div className="flex items-center space-x-4">
-                      <div className="w-10 h-10 rounded-full bg-slate-700"></div>
-                      <div className="space-y-2">
-                        <div className="h-4 w-24 bg-slate-700 rounded"></div>
-                        <div className="h-3 w-16 bg-slate-700 rounded"></div>
-                      </div>
-                    </div>
-                    <div className="h-6 w-20 bg-slate-700 rounded"></div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {workoutSchedule.map((item, index) => (
-                  <div key={index} className="flex items-center justify-between p-3 rounded-lg bg-slate-800/50">
-                    <div className="flex items-center space-x-4">
-                      <div className="w-10 h-10 rounded-full bg-slate-700 flex items-center justify-center">
-                        <span className="text-sm font-medium text-slate-300">{item.day.substring(0, 3)}</span>
-                      </div>
-                      <div>
-                        <h3 className="font-medium text-slate-100">{item.workout}</h3>
-                        {item.time !== '-' && (
-                          <div className="flex items-center text-xs text-slate-400">
-                            <Clock className="h-3 w-3 mr-1" />
-                            {item.time} • {item.duration}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      {item.time !== '-' ? (
-                        <WorkoutCompletionButton
-                          isCompleted={isWorkoutCompletedToday(item.day)}
-                          onToggle={() => handleWorkoutToggle(item.day, item.workout)}
-                          disabled={completionsLoading}
-                          workoutName={item.workout}
-                          canMarkToday={canMarkWorkoutForDay(item.day)}
-                        />
-                      ) : (
-                        <Badge className="bg-slate-600/50 text-slate-300 hover:bg-slate-600/80">Rest Day</Badge>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-        
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <GoogleCalendarSync workoutSchedule={workoutSchedule} />
           
           <Card className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-md border-slate-700">
             <CardHeader>
-              <CardTitle className="text-slate-100">Monthly Overview</CardTitle>
-              <CardDescription className="text-slate-400">Your workout calendar</CardDescription>
+              <CardTitle className="text-slate-100">This Week's Schedule</CardTitle>
+              <CardDescription className="text-slate-400">
+                Your personalized workout plan for maximum results
+              </CardDescription>
             </CardHeader>
-            <CardContent className="h-72">
-              <div className="h-full flex items-center justify-center">
-                <p className="text-slate-400">Calendar view coming soon</p>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                {weekDays.map((day) => (
+                  <Card key={day.name} className="bg-slate-800/30 border-slate-600">
+                    <CardHeader className="pb-3">
+                      <div className="flex items-center justify-between">
+                        <CardTitle className="text-sm font-medium text-slate-100">
+                          {day.name}
+                        </CardTitle>
+                        <span className="text-xs text-slate-400">{day.date}</span>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      {day.workouts.map((workout, index) => (
+                        <div key={index} className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <p className="text-sm font-medium text-slate-200">{workout.name}</p>
+                            <Badge variant="outline" className="text-xs border-slate-500 text-slate-300">
+                              {workout.duration}
+                            </Badge>
+                          </div>
+                          <p className="text-xs text-slate-400">{workout.type}</p>
+                          
+                          <WorkoutCompletionButton
+                            isCompleted={isWorkoutCompleted(day.date, workout.name)}
+                            onToggle={() => toggleWorkoutCompletion(day.date, workout.name, day.name)}
+                            workoutName={workout.name}
+                            canMarkToday={isToday(day.date)}
+                          />
+                        </div>
+                      ))}
+                    </CardContent>
+                  </Card>
+                ))}
               </div>
             </CardContent>
           </Card>
         </div>
-        
-        <Card className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-md border-slate-700">
-          <CardHeader>
-            <CardTitle className="text-slate-100">Workout Notes</CardTitle>
-            <CardDescription className="text-slate-400">Reminders for your training</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ul className="space-y-2">
-              <li className="flex items-start space-x-2 text-slate-300">
-                <span className="text-primary">•</span>
-                <span>Increase bench press by 5lbs this week</span>
-              </li>
-              <li className="flex items-start space-x-2 text-slate-300">
-                <span className="text-primary">•</span>
-                <span>Focus on proper squat form, go deeper</span>
-              </li>
-              <li className="flex items-start space-x-2 text-slate-300">
-                <span className="text-primary">•</span>
-                <span>Remember to stretch after leg day</span>
-              </li>
-              <li className="flex items-start space-x-2 text-slate-300">
-                <span className="text-primary">•</span>
-                <span>Increase water intake during workouts</span>
-              </li>
-            </ul>
-          </CardContent>
-        </Card>
-      </div>
+      </PremiumPageWrapper>
     </AppLayout>
   );
 };
