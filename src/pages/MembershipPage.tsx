@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
@@ -71,7 +70,6 @@ const MembershipPage = () => {
         throw new Error('User not authenticated');
       }
 
-      // Create order in database first
       const orderId = `order_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
       
       const { data: orderData, error: orderError } = await supabase
@@ -129,7 +127,6 @@ const MembershipPage = () => {
           description: "Your premium membership is now active.",
         });
         
-        // Refresh membership status
         await checkMembership();
         return true;
       } else {
@@ -159,18 +156,15 @@ const MembershipPage = () => {
     setLoading(true);
     
     try {
-      // Load Razorpay SDK
       console.log('Loading Razorpay SDK...');
       const res = await loadRazorpay();
       if (!res) {
         throw new Error("Razorpay SDK failed to load. Please check your internet connection and try again.");
       }
 
-      // Create order
       console.log('Creating order...');
       const orderData = await createOrder();
       
-      // Get Razorpay configuration
       console.log('Getting Razorpay configuration...');
       const { data: configData, error: configError } = await supabase.functions.invoke('create-payment', {
         body: {
@@ -186,10 +180,9 @@ const MembershipPage = () => {
 
       console.log('Razorpay config received:', configData);
 
-      // Configure Razorpay options
       const options = {
         key: configData?.key_id || "rzp_live_AFBMj1SG3UGbjg",
-        amount: plan.price * 100, // Convert to paise
+        amount: plan.price * 100,
         currency: "INR",
         name: "Consist Fitness",
         description: "Monthly Premium Membership",
@@ -208,7 +201,6 @@ const MembershipPage = () => {
           console.log("Payment successful, response:", response);
           
           try {
-            // Verify payment
             const verificationSuccess = await verifyPayment(response);
             if (verificationSuccess) {
               console.log("Payment verification successful");
@@ -223,14 +215,26 @@ const MembershipPage = () => {
           ondismiss: function() {
             console.log("Payment modal dismissed by user");
             setLoading(false);
-          }
+          },
+          escape: false,
+          backdropclose: false
         }
       };
 
       console.log("Opening Razorpay with options:", options);
 
-      // Open Razorpay checkout
       const paymentObject = new window.Razorpay(options);
+      
+      paymentObject.on('payment.failed', function (response: any) {
+        console.error('Payment failed:', response.error);
+        toast({
+          title: "Payment Failed",
+          description: response.error.description || "Payment failed. Please try again.",
+          variant: "destructive",
+        });
+        setLoading(false);
+      });
+
       paymentObject.open();
       
     } catch (err: any) {
