@@ -50,7 +50,9 @@ export const MembershipProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         setIsExpired(false);
       } else if (data) {
         console.log('Membership data:', data);
-        const expiryDate = data.expires_at ? new Date(data.expires_at) : null;
+        // Use type assertion to access expires_at since TypeScript types haven't been updated
+        const membershipData = data as any;
+        const expiryDate = membershipData.expires_at ? new Date(membershipData.expires_at) : null;
         const isCurrentlyExpired = expiryDate ? expiryDate < new Date() : false;
         
         setHasMembership(!!data && !isCurrentlyExpired);
