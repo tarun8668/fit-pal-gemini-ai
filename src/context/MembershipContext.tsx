@@ -8,6 +8,8 @@ interface MembershipContextType {
   isLoading: boolean;
   checkMembership: () => Promise<void>;
   membershipDetails: any;
+  expiresAt: Date | null;
+  isExpired: boolean;
 }
 
 const MembershipContext = createContext<MembershipContextType | undefined>(undefined);
@@ -17,11 +19,15 @@ export const MembershipProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const [hasMembership, setHasMembership] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [membershipDetails, setMembershipDetails] = useState(null);
+  const [expiresAt, setExpiresAt] = useState<Date | null>(null);
+  const [isExpired, setIsExpired] = useState(false);
 
   const checkMembership = async () => {
     if (!user) {
       setHasMembership(false);
       setMembershipDetails(null);
+      setExpiresAt(null);
+      setIsExpired(false);
       setIsLoading(false);
       return;
     }
@@ -40,15 +46,29 @@ export const MembershipProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         console.error('Error checking membership:', error);
         setHasMembership(false);
         setMembershipDetails(null);
-      } else {
+        setExpiresAt(null);
+        setIsExpired(false);
+      } else if (data) {
         console.log('Membership data:', data);
-        setHasMembership(!!data);
+        const expiryDate = data.expires_at ? new Date(data.expires_at) : null;
+        const isCurrentlyExpired = expiryDate ? expiryDate < new Date() : false;
+        
+        setHasMembership(!!data && !isCurrentlyExpired);
         setMembershipDetails(data);
+        setExpiresAt(expiryDate);
+        setIsExpired(isCurrentlyExpired);
+      } else {
+        setHasMembership(false);
+        setMembershipDetails(null);
+        setExpiresAt(null);
+        setIsExpired(false);
       }
     } catch (error) {
       console.error('Error checking membership:', error);
       setHasMembership(false);
       setMembershipDetails(null);
+      setExpiresAt(null);
+      setIsExpired(false);
     } finally {
       setIsLoading(false);
     }
@@ -92,7 +112,9 @@ export const MembershipProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       hasMembership, 
       isLoading, 
       checkMembership, 
-      membershipDetails 
+      membershipDetails,
+      expiresAt,
+      isExpired
     }}>
       {children}
     </MembershipContext.Provider>

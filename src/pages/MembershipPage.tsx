@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import type { ReactElement } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
@@ -8,6 +9,7 @@ import { Check, CreditCard, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useMembership } from '@/context/MembershipContext';
+import { SubscriptionStatusBar } from '@/components/membership/SubscriptionStatusBar';
 
 declare global {
   interface Window {
@@ -19,7 +21,7 @@ const MembershipPage = () => {
   const { toast } = useToast();
   const [loading, setLoading] = useState<boolean>(false);
   const [userId, setUserId] = useState<string | null>(null);
-  const { hasMembership, isLoading: membershipLoading, checkMembership } = useMembership();
+  const { hasMembership, isLoading: membershipLoading, checkMembership, isExpired } = useMembership();
 
   const plan = {
     id: 'monthly',
@@ -189,10 +191,11 @@ const MembershipPage = () => {
     );
   }
 
-  if (hasMembership) {
+  if (hasMembership && !isExpired) {
     return (
       <AppLayout>
         <div className="space-y-6 bg-white dark:bg-black min-h-screen">
+          <SubscriptionStatusBar onUpgrade={handlePayment} />
           <Card>
             <CardHeader>
               <CardTitle>🎉 Premium Member</CardTitle>
@@ -239,11 +242,12 @@ const MembershipPage = () => {
   return (
     <AppLayout>
       <div className="space-y-6 bg-white dark:bg-black min-h-screen">
+        <SubscriptionStatusBar onUpgrade={handlePayment} />
         <Card>
           <CardHeader>
-            <CardTitle>Upgrade to Premium</CardTitle>
+            <CardTitle>{isExpired ? 'Renew Your Premium' : 'Upgrade to Premium'}</CardTitle>
             <CardDescription>
-              Unlock all features and get unlimited access
+              {isExpired ? 'Your subscription has expired. Renew to continue enjoying premium features.' : 'Unlock all features and get unlimited access'}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -296,7 +300,7 @@ const MembershipPage = () => {
                     ) : (
                       <>
                         <CreditCard className="h-4 w-4 mr-2" />
-                        Pay Now
+                        {isExpired ? 'Renew Now' : 'Pay Now'}
                       </>
                     )}
                   </Button>
