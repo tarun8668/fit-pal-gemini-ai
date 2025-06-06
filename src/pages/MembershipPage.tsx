@@ -65,68 +65,6 @@ const MembershipPage = () => {
     });
   };
 
-  const createOrder = async () => {
-    try {
-      if (!userId) {
-        throw new Error('User not authenticated');
-      }
-
-      // Create Razorpay instance
-      const instance = new window.Razorpay({
-        key_id: 'rzp_test_HM1cyFfI10djqm',
-        key_secret: 'US3CErerzqK957J18N3nwJFK'
-      });
-
-      // Create order using instance
-      const order = await instance.orders.create({
-        amount: plan.price * 100,
-        currency: "INR",
-        receipt: `receipt_${Date.now()}`,
-        notes: {
-          user_id: userId,
-          plan_id: plan.id,
-          plan_type: "monthly"
-        }
-      });
-
-      console.log('Razorpay order created:', order);
-
-      if (!order.id) {
-        throw new Error('No order ID received from Razorpay');
-      }
-
-      // Create order in our database
-      const { data: orderData, error: orderError } = await supabase
-        .from('orders')
-        .insert([
-          {
-            user_id: userId,
-            order_id: order.id,
-            plan_id: plan.id,
-            amount: plan.price,
-            currency: 'INR',
-            status: 'pending'
-          }
-        ])
-        .select()
-        .single();
-
-      if (orderError) {
-        throw new Error(`Failed to create database order: ${orderError.message}`);
-      }
-
-      return order.id;
-    } catch (error) {
-      console.error('Error creating order:', error);
-      toast({
-        title: "Payment Error",
-        description: error instanceof Error ? error.message : "Failed to create order",
-        variant: "destructive",
-      });
-      throw error;
-    }
-  };
-
   const handlePayment = async () => {
     if (!userId) {
       toast({
@@ -165,38 +103,39 @@ const MembershipPage = () => {
           color: "#8B5CF6"
         },
         handler: async function(response: any) {
+          console.log('Razorpay payment successful:', response);
+          
           try {
-            // Create order in database
-            const { data: orderData, error: orderError } = await supabase
-              .from('orders')
-              .insert([
-                {
-                  user_id: userId,
-                  order_id: response.razorpay_order_id,
-                  payment_id: response.razorpay_payment_id,
-                  plan_id: plan.id,
-                  amount: plan.price,
-                  currency: 'INR',
-                  status: 'completed'
-                }
-              ])
-              .select()
-              .single();
+            // Call the verify-payment edge function to handle payment verification and user upgrade
+            const { data, error } = await supabase.functions.invoke('verify-payment', {
+              body: {
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_signature: response.razorpay_signature,
+                user_id: userId
+              }
+            });
 
-            if (orderError) {
-              throw new Error(`Failed to create database order: ${orderError.message}`);
+            if (error) {
+              console.error('Payment verification error:', error);
+              throw new Error(error.message || 'Payment verification failed');
             }
+
+            console.log('Payment verification successful:', data);
 
             toast({
               title: "Payment Successful!",
-              description: "Your premium membership is now active.",
+              description: "Congratulations! You are now a premium member with access to all features.",
             });
+
+            // Force refresh membership status
             await checkMembership();
+            
           } catch (error) {
             console.error('Payment verification failed:', error);
             toast({
               title: "Payment Verification Failed",
-              description: "Please contact support if payment was deducted.",
+              description: "Please contact support if payment was deducted. We'll resolve this quickly.",
               variant: "destructive",
             });
           }
@@ -204,16 +143,18 @@ const MembershipPage = () => {
         },
         modal: {
           ondismiss: function() {
+            console.log('Payment modal dismissed');
             setLoading(false);
           },
-          escape: false,
-          backdropclose: false
+          escape: true,
+          backdropclose: true
         }
       };
 
       const rzp1 = new window.Razorpay(options);
       
       rzp1.on('payment.failed', function (response: any) {
+        console.error('Razorpay payment failed:', response.error);
         toast({
           title: "Payment Failed",
           description: response.error.description || "Payment failed. Please try again.",
@@ -254,9 +195,9 @@ const MembershipPage = () => {
         <div className="space-y-6 bg-white dark:bg-black min-h-screen">
           <Card>
             <CardHeader>
-              <CardTitle>Active Membership</CardTitle>
+              <CardTitle>🎉 Premium Member</CardTitle>
               <CardDescription>
-                Your membership is currently active
+                You have full access to all premium features
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -264,12 +205,12 @@ const MembershipPage = () => {
                 <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-green-100 mb-4">
                   <Check className="h-8 w-8 text-green-600" />
                 </div>
-                <h2 className="text-2xl font-bold mb-2">Thank You for Being a Member!</h2>
+                <h2 className="text-2xl font-bold mb-2">Welcome to Premium!</h2>
                 <p className="text-muted-foreground mb-6">
-                  You have full access to all premium features and content.
+                  You now have unlimited access to all features including AI chat, diet plans, activity tracking, and more.
                 </p>
                 <div className="w-full max-w-md mx-auto p-4 border border-border rounded-lg bg-muted/50">
-                  <h3 className="font-medium mb-3">Your Benefits Include:</h3>
+                  <h3 className="font-medium mb-3">Your Premium Benefits:</h3>
                   <ul className="space-y-2 text-left">
                     {plan.features.map((feature, index) => (
                       <li key={index} className="flex items-center gap-2">
@@ -277,6 +218,14 @@ const MembershipPage = () => {
                         <span>{feature}</span>
                       </li>
                     ))}
+                    <li className="flex items-center gap-2">
+                      <Check className="h-4 w-4 text-green-500" />
+                      <span>Unlimited AI chat sessions</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <Check className="h-4 w-4 text-green-500" />
+                      <span>Advanced activity tracking</span>
+                    </li>
                   </ul>
                 </div>
               </div>
@@ -292,9 +241,9 @@ const MembershipPage = () => {
       <div className="space-y-6 bg-white dark:bg-black min-h-screen">
         <Card>
           <CardHeader>
-            <CardTitle>Membership Plan</CardTitle>
+            <CardTitle>Upgrade to Premium</CardTitle>
             <CardDescription>
-              Get full access to all features
+              Unlock all features and get unlimited access
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -326,6 +275,10 @@ const MembershipPage = () => {
                         <span>{feature}</span>
                       </li>
                     ))}
+                    <li className="flex items-center gap-2">
+                      <Check className="h-4 w-4 text-green-500" />
+                      <span>Unlimited AI chat sessions</span>
+                    </li>
                   </ul>
                 </CardContent>
                 <CardFooter>
