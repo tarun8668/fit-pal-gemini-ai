@@ -9,21 +9,14 @@ import { supabase } from '@/integrations/supabase/client';
 import { useChatLimits } from '@/hooks/useChatLimits';
 import { useMembership } from '@/context/MembershipContext';
 import { Link } from 'react-router-dom';
-
-interface Message {
-  id: string;
-  text: string;
-  isUser: boolean;
-  timestamp: Date;
-}
+import { ChatMessage } from '@/types/chat';
 
 export const ChatInterface = () => {
-  const [messages, setMessages] = useState<Message[]>([
+  const [messages, setMessages] = useState<ChatMessage[]>([
     {
       id: '1',
-      text: 'Hello! I\'m your AI fitness assistant. How can I help you today?',
-      isUser: false,
-      timestamp: new Date(),
+      role: 'assistant',
+      content: 'Hello! I\'m your AI fitness assistant. How can I help you today?',
     },
   ]);
   const [input, setInput] = useState('');
@@ -54,11 +47,10 @@ export const ChatInterface = () => {
       return;
     }
 
-    const userMessage: Message = {
+    const userMessage: ChatMessage = {
       id: Date.now().toString(),
-      text: input.trim(),
-      isUser: true,
-      timestamp: new Date(),
+      role: 'user',
+      content: input.trim(),
     };
 
     setMessages(prev => [...prev, userMessage]);
@@ -79,11 +71,10 @@ export const ChatInterface = () => {
         throw error;
       }
 
-      const aiMessage: Message = {
+      const aiMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
-        text: data.response || 'Sorry, I encountered an error. Please try again.',
-        isUser: false,
-        timestamp: new Date(),
+        role: 'assistant',
+        content: data.response || 'Sorry, I encountered an error. Please try again.',
       };
 
       setMessages(prev => [...prev, aiMessage]);
@@ -112,9 +103,7 @@ export const ChatInterface = () => {
         {messages.map((message) => (
           <ChatBubble
             key={message.id}
-            message={message.text}
-            isUser={message.isUser}
-            timestamp={message.timestamp}
+            message={message}
           />
         ))}
         {isLoading && (
