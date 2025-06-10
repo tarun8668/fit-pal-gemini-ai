@@ -213,6 +213,7 @@ export type Database = {
       user_memberships: {
         Row: {
           created_at: string | null
+          expires_at: string | null
           id: string
           order_id: string | null
           payment_id: string | null
@@ -222,6 +223,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string | null
+          expires_at?: string | null
           id?: string
           order_id?: string | null
           payment_id?: string | null
@@ -231,6 +233,7 @@ export type Database = {
         }
         Update: {
           created_at?: string | null
+          expires_at?: string | null
           id?: string
           order_id?: string | null
           payment_id?: string | null
@@ -333,6 +336,48 @@ export type Database = {
           completion_date?: string
           created_at?: string
           id?: string
+          user_id?: string
+          workout_day?: string
+          workout_name?: string
+        }
+        Relationships: []
+      }
+      workout_sessions: {
+        Row: {
+          created_at: string
+          duration_minutes: number | null
+          end_time: string | null
+          id: string
+          session_date: string
+          start_time: string
+          status: string
+          updated_at: string
+          user_id: string
+          workout_day: string
+          workout_name: string
+        }
+        Insert: {
+          created_at?: string
+          duration_minutes?: number | null
+          end_time?: string | null
+          id?: string
+          session_date?: string
+          start_time: string
+          status?: string
+          updated_at?: string
+          user_id: string
+          workout_day: string
+          workout_name: string
+        }
+        Update: {
+          created_at?: string
+          duration_minutes?: number | null
+          end_time?: string | null
+          id?: string
+          session_date?: string
+          start_time?: string
+          status?: string
+          updated_at?: string
           user_id?: string
           workout_day?: string
           workout_name?: string
