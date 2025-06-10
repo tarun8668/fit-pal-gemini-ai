@@ -13,7 +13,7 @@ interface WorkoutSession {
   end_time?: string;
   duration_minutes?: number;
   session_date: string;
-  status: 'in_progress' | 'completed' | 'cancelled';
+  status: string;
   created_at: string;
   updated_at: string;
 }
