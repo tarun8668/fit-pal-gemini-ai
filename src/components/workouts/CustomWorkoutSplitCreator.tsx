@@ -27,8 +27,7 @@ export const CustomWorkoutSplitCreator = () => {
   const [splitDescription, setSplitDescription] = useState('');
   const [workoutDays, setWorkoutDays] = useState<WorkoutDay[]>([]);
   const [currentDay, setCurrentDay] = useState('');
-  const [currentExercise, setCurrentExercise] = useState('');
-  const [customExercise, setCustomExercise] = useState('');
+  const [customExercises, setCustomExercises] = useState<Record<string, string>>({});
 
   const addWorkoutDay = () => {
     if (!currentDay || workoutDays.some(day => day.name === currentDay)) return;
@@ -39,6 +38,10 @@ export const CustomWorkoutSplitCreator = () => {
 
   const removeWorkoutDay = (dayName: string) => {
     setWorkoutDays(workoutDays.filter(day => day.name !== dayName));
+    // Clean up custom exercise state for this day
+    const newCustomExercises = { ...customExercises };
+    delete newCustomExercises[dayName];
+    setCustomExercises(newCustomExercises);
   };
 
   const addExercise = (dayName: string, exercise: string) => {
@@ -59,6 +62,21 @@ export const CustomWorkoutSplitCreator = () => {
     ));
   };
 
+  const updateCustomExercise = (dayName: string, value: string) => {
+    setCustomExercises(prev => ({
+      ...prev,
+      [dayName]: value
+    }));
+  };
+
+  const addCustomExercise = (dayName: string) => {
+    const customExercise = customExercises[dayName];
+    if (customExercise) {
+      addExercise(dayName, customExercise);
+      updateCustomExercise(dayName, '');
+    }
+  };
+
   const handleSaveCustomSplit = async () => {
     if (!splitName || workoutDays.length === 0) return;
 
@@ -76,6 +94,7 @@ export const CustomWorkoutSplitCreator = () => {
     setSplitName('');
     setSplitDescription('');
     setWorkoutDays([]);
+    setCustomExercises({});
   };
 
   return (
@@ -162,23 +181,17 @@ export const CustomWorkoutSplitCreator = () => {
                       <div className="flex gap-2">
                         <Input
                           placeholder="Custom exercise"
-                          value={customExercise}
-                          onChange={(e) => setCustomExercise(e.target.value)}
+                          value={customExercises[day.name] || ''}
+                          onChange={(e) => updateCustomExercise(day.name, e.target.value)}
                           onKeyPress={(e) => {
-                            if (e.key === 'Enter' && customExercise) {
-                              addExercise(day.name, customExercise);
-                              setCustomExercise('');
+                            if (e.key === 'Enter') {
+                              addCustomExercise(day.name);
                             }
                           }}
                         />
                         <Button
-                          onClick={() => {
-                            if (customExercise) {
-                              addExercise(day.name, customExercise);
-                              setCustomExercise('');
-                            }
-                          }}
-                          disabled={!customExercise}
+                          onClick={() => addCustomExercise(day.name)}
+                          disabled={!customExercises[day.name]}
                         >
                           Add
                         </Button>
