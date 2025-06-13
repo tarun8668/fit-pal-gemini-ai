@@ -5,6 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { useWorkoutSplits } from '@/hooks/useWorkoutSplits';
+import { CustomWorkoutSplitCreator } from './CustomWorkoutSplitCreator';
 
 type WorkoutSplit = {
   name: string;
@@ -143,6 +144,7 @@ const WORKOUT_SPLITS: Record<string, WorkoutSplit> = {
 export const WorkoutSplitGenerator = () => {
   const [selectedSplit, setSelectedSplit] = useState('ppl');
   const [activeTab, setActiveTab] = useState('0');
+  const [viewMode, setViewMode] = useState<'preset' | 'custom'>('preset');
   const { savedSplit, saveSplit } = useWorkoutSplits();
 
   const handleSplitChange = (value: string) => {
@@ -158,99 +160,120 @@ export const WorkoutSplitGenerator = () => {
   const currentSplit = WORKOUT_SPLITS[selectedSplit];
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Workout Split Generator</CardTitle>
-        <CardDescription>
-          Find the perfect workout split for your schedule and goals
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-6">
-          {savedSplit && (
-            <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
-              <p className="text-sm text-green-800">
-                <strong>Current saved split:</strong> {savedSplit.split_name}
-              </p>
-            </div>
-          )}
-          
-          <div className="space-y-2">
-            <Label htmlFor="split-type">Select Workout Split</Label>
-            <Select onValueChange={handleSplitChange} value={selectedSplit}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select a workout split" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="ppl">Push/Pull/Legs</SelectItem>
-                <SelectItem value="upper-lower">Upper/Lower</SelectItem>
-                <SelectItem value="full-body">Full Body</SelectItem>
-                <SelectItem value="bro-split">Body Part Split</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          
-          <div className="p-4 bg-gray-50 rounded-lg">
-            <h3 className="text-lg font-medium">{currentSplit.name}</h3>
-            <p className="text-gray-500 mt-1 mb-4">{currentSplit.description}</p>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-              <div>
-                <h4 className="font-medium text-sm mb-2">Advantages:</h4>
-                <ul className="list-disc pl-5 space-y-1 text-sm">
-                  {currentSplit.advantages.map((advantage, i) => (
-                    <li key={i}>{advantage}</li>
-                  ))}
-                </ul>
-              </div>
-              <div>
-                <h4 className="font-medium text-sm mb-2">Suitable For:</h4>
-                <ul className="list-disc pl-5 space-y-1 text-sm">
-                  {currentSplit.suitableFor.map((suitability, i) => (
-                    <li key={i}>{suitability}</li>
-                  ))}
-                </ul>
-              </div>
-            </div>
-          </div>
-          
-          <div>
-            <h3 className="font-medium mb-4">Workout Schedule</h3>
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-              <TabsList className="grid grid-cols-3 md:grid-cols-6">
-                {currentSplit.days.map((day, i) => (
-                  <TabsTrigger key={i} value={i.toString()}>
-                    Day {i + 1}
-                  </TabsTrigger>
-                ))}
-              </TabsList>
-              {currentSplit.days.map((day, i) => (
-                <TabsContent key={i} value={i.toString()}>
-                  <Card>
-                    <CardHeader className="pb-2">
-                      <CardTitle className="text-lg">{day.name}</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <ul className="space-y-2">
-                        {day.exercises.map((exercise, j) => (
-                          <li key={j} className="flex items-center gap-2">
-                            <span className="h-2 w-2 rounded-full bg-primary"></span>
-                            <span>{exercise}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </CardContent>
-                  </Card>
-                </TabsContent>
-              ))}
-            </Tabs>
-          </div>
-          
-          <Button className="w-full" onClick={handleSaveSplit}>
-            Save This Split
-          </Button>
+    <div className="space-y-6">
+      {savedSplit && (
+        <div className="p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+          <p className="text-sm text-green-800 dark:text-green-300">
+            <strong>Current saved split:</strong> {savedSplit.split_name}
+          </p>
         </div>
-      </CardContent>
-    </Card>
+      )}
+
+      <div className="flex gap-2 mb-6">
+        <Button
+          variant={viewMode === 'preset' ? 'default' : 'outline'}
+          onClick={() => setViewMode('preset')}
+        >
+          Preset Splits
+        </Button>
+        <Button
+          variant={viewMode === 'custom' ? 'default' : 'outline'}
+          onClick={() => setViewMode('custom')}
+        >
+          Create Custom Split
+        </Button>
+      </div>
+
+      {viewMode === 'custom' ? (
+        <CustomWorkoutSplitCreator />
+      ) : (
+        <Card className="bg-white dark:bg-gray-900">
+          <CardHeader>
+            <CardTitle>Preset Workout Splits</CardTitle>
+            <CardDescription>
+              Choose from proven workout split templates
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-6">
+              <div className="space-y-2">
+                <Label htmlFor="split-type">Select Workout Split</Label>
+                <Select onValueChange={handleSplitChange} value={selectedSplit}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a workout split" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="ppl">Push/Pull/Legs</SelectItem>
+                    <SelectItem value="upper-lower">Upper/Lower</SelectItem>
+                    <SelectItem value="full-body">Full Body</SelectItem>
+                    <SelectItem value="bro-split">Body Part Split</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                <h3 className="text-lg font-medium">{currentSplit.name}</h3>
+                <p className="text-gray-500 dark:text-gray-400 mt-1 mb-4">{currentSplit.description}</p>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                  <div>
+                    <h4 className="font-medium text-sm mb-2">Advantages:</h4>
+                    <ul className="list-disc pl-5 space-y-1 text-sm">
+                      {currentSplit.advantages.map((advantage, i) => (
+                        <li key={i}>{advantage}</li>
+                      ))}
+                    </ul>
+                  </div>
+                  <div>
+                    <h4 className="font-medium text-sm mb-2">Suitable For:</h4>
+                    <ul className="list-disc pl-5 space-y-1 text-sm">
+                      {currentSplit.suitableFor.map((suitability, i) => (
+                        <li key={i}>{suitability}</li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              </div>
+              
+              <div>
+                <h3 className="font-medium mb-4">Workout Schedule</h3>
+                <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+                  <TabsList className="grid grid-cols-3 md:grid-cols-6">
+                    {currentSplit.days.map((day, i) => (
+                      <TabsTrigger key={i} value={i.toString()}>
+                        Day {i + 1}
+                      </TabsTrigger>
+                    ))}
+                  </TabsList>
+                  {currentSplit.days.map((day, i) => (
+                    <TabsContent key={i} value={i.toString()}>
+                      <Card className="bg-white dark:bg-gray-900">
+                        <CardHeader className="pb-2">
+                          <CardTitle className="text-lg">{day.name}</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <ul className="space-y-2">
+                            {day.exercises.map((exercise, j) => (
+                              <li key={j} className="flex items-center gap-2">
+                                <span className="h-2 w-2 rounded-full bg-primary"></span>
+                                <span>{exercise}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </CardContent>
+                      </Card>
+                    </TabsContent>
+                  ))}
+                </Tabs>
+              </div>
+              
+              <Button className="w-full" onClick={handleSaveSplit}>
+                Save This Split
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+    </div>
   );
 };
