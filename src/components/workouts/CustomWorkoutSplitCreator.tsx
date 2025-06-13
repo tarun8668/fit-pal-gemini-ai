@@ -79,7 +79,7 @@ export const CustomWorkoutSplitCreator = () => {
   };
 
   return (
-    <Card className="bg-white dark:bg-gray-900">
+    <Card>
       <CardHeader>
         <CardTitle>Create Custom Workout Split</CardTitle>
         <CardDescription>
@@ -132,7 +132,7 @@ export const CustomWorkoutSplitCreator = () => {
             <div className="space-y-4">
               <h4 className="font-medium">Workout Days</h4>
               {workoutDays.map((day) => (
-                <Card key={day.name} className="bg-gray-50 dark:bg-gray-800">
+                <Card key={day.name} className="border-border">
                   <CardHeader className="pb-3">
                     <div className="flex items-center justify-between">
                       <CardTitle className="text-lg">{day.name}</CardTitle>

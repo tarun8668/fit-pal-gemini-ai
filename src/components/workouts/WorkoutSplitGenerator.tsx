@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -187,7 +188,7 @@ export const WorkoutSplitGenerator = () => {
       {viewMode === 'custom' ? (
         <CustomWorkoutSplitCreator />
       ) : (
-        <Card className="bg-white dark:bg-gray-900">
+        <Card>
           <CardHeader>
             <CardTitle>Preset Workout Splits</CardTitle>
             <CardDescription>
@@ -211,9 +212,9 @@ export const WorkoutSplitGenerator = () => {
                 </Select>
               </div>
               
-              <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+              <div className="p-4 border rounded-lg">
                 <h3 className="text-lg font-medium">{currentSplit.name}</h3>
-                <p className="text-gray-500 dark:text-gray-400 mt-1 mb-4">{currentSplit.description}</p>
+                <p className="text-muted-foreground mt-1 mb-4">{currentSplit.description}</p>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                   <div>
@@ -247,7 +248,7 @@ export const WorkoutSplitGenerator = () => {
                   </TabsList>
                   {currentSplit.days.map((day, i) => (
                     <TabsContent key={i} value={i.toString()}>
-                      <Card className="bg-white dark:bg-gray-900">
+                      <Card>
                         <CardHeader className="pb-2">
                           <CardTitle className="text-lg">{day.name}</CardTitle>
                         </CardHeader>
