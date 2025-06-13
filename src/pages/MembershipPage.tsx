@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import type { ReactElement } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
@@ -108,13 +107,14 @@ const MembershipPage = () => {
           console.log('Razorpay payment successful:', response);
           
           try {
-            // Call the verify-payment edge function to handle payment verification and user upgrade
-            const { data, error } = await supabase.functions.invoke('verify-payment', {
+            // Call the new verify-membership-payment edge function
+            const { data, error } = await supabase.functions.invoke('verify-membership-payment', {
               body: {
-                razorpay_payment_id: response.razorpay_payment_id,
-                razorpay_order_id: response.razorpay_order_id,
-                razorpay_signature: response.razorpay_signature,
-                user_id: userId
+                payment_id: response.razorpay_payment_id,
+                user_id: userId,
+                amount: plan.price,
+                plan_type: 'monthly',
+                duration_months: 1
               }
             });
 
