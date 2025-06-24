@@ -128,7 +128,7 @@ const Index = () => {
             </Card>
           </Link>
           
-          <Link to="/diet-plans" className="block">
+          <Link to="/diet" className="block">
             <Card className="h-full transition-all hover:shadow-md hover:-translate-y-1">
               <CardContent className="p-6 flex flex-col h-full">
                 <div className="flex items-center justify-between mb-4">
