@@ -132,7 +132,7 @@ const Index = () => {
             <Card className="h-full transition-all hover:shadow-md hover:-translate-y-1">
               <CardContent className="p-6 flex flex-col h-full">
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-medium">Diet Plans</h3>
+                  <h3 className="text-lg font-medium">Diet</h3>
                   <div className="p-2 bg-primary/10 rounded-full">
                     <Apple className="h-5 w-5 text-primary" />
                   </div>
