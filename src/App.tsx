@@ -11,6 +11,7 @@ import Index from "./pages/Index";
 import ChatPage from "./pages/ChatPage";
 import WorkoutsPage from "./pages/WorkoutsPage";
 import DietPage from "./pages/DietPage";
+import DietPlansPage from "./pages/DietPlansPage";
 import CaloriesPage from "./pages/CaloriesPage";
 import ProfilePage from "./pages/ProfilePage";
 import ActivityPage from "./pages/ActivityPage";
@@ -37,6 +38,7 @@ const App = () => (
               <Route path="/chat" element={<ProtectedRoute><ChatPage /></ProtectedRoute>} />
               <Route path="/workouts" element={<ProtectedRoute><WorkoutsPage /></ProtectedRoute>} />
               <Route path="/diet" element={<ProtectedRoute><DietPage /></ProtectedRoute>} />
+              <Route path="/diet-plans" element={<ProtectedRoute><DietPlansPage /></ProtectedRoute>} />
               <Route path="/calories" element={<ProtectedRoute><CaloriesPage /></ProtectedRoute>} />
               <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
               <Route path="/activity" element={<ProtectedRoute><ActivityPage /></ProtectedRoute>} />

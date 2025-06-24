@@ -171,6 +171,51 @@ export type Database = {
         }
         Relationships: []
       }
+      subscriptions: {
+        Row: {
+          amount: number
+          created_at: string | null
+          expires_at: string | null
+          id: string
+          interval: string
+          interval_count: number
+          payment_id: string | null
+          plan_id: string
+          razorpay_subscription_id: string
+          status: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string
+          interval: string
+          interval_count: number
+          payment_id?: string | null
+          plan_id: string
+          razorpay_subscription_id: string
+          status: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string
+          interval?: string
+          interval_count?: number
+          payment_id?: string | null
+          plan_id?: string
+          razorpay_subscription_id?: string
+          status?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_diet_plans: {
         Row: {
           carbs_target: number

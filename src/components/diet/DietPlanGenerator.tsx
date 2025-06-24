@@ -1,11 +1,13 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Apple } from 'lucide-react';
+import { Apple, Calendar } from 'lucide-react';
+import { useAuth } from '@/context/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from '@/components/ui/use-toast';
 
 type Meal = {
   title: string;
@@ -16,9 +18,7 @@ type Meal = {
   fat: number;
 };
 
-type DietPlan = {
-  name: string;
-  description: string;
+type DayPlan = {
   meals: Meal[];
   dailySummary: {
     calories: number;
@@ -28,7 +28,28 @@ type DietPlan = {
   };
 };
 
-const DIET_PLANS: Record<string, DietPlan> = {
+type WeeklyDietPlan = {
+  name: string;
+  description: string;
+  targetCalories: number;
+  days: {
+    [key: string]: DayPlan;
+  };
+};
+
+const DAYS_OF_WEEK = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+
+const DIET_PLANS: Record<string, {
+  name: string;
+  description: string;
+  meals: Meal[];
+  dailySummary: {
+    calories: number;
+    protein: number;
+    carbs: number;
+    fat: number;
+  };
+}> = {
   'weight-loss': {
     name: 'Weight Loss Plan',
     description: 'A calorie-deficit diet with higher protein to maintain muscle mass while losing fat.',
@@ -247,93 +268,253 @@ const DIET_PLANS: Record<string, DietPlan> = {
   }
 };
 
+const generateWeeklyPlan = (selectedDiet: string, targetCalories: number): WeeklyDietPlan => {
+  const basePlan = DIET_PLANS[selectedDiet];
+  const scaleFactor = targetCalories / basePlan.dailySummary.calories;
+  
+  const weeklyPlan: WeeklyDietPlan = {
+    name: `Weekly ${basePlan.name}`,
+    description: `A 7-day ${basePlan.description.toLowerCase()} targeting ${targetCalories} calories per day.`,
+    targetCalories,
+    days: {}
+  };
+
+  DAYS_OF_WEEK.forEach(day => {
+    const scaledMeals = basePlan.meals.map(meal => ({
+      ...meal,
+      calories: Math.round(meal.calories * scaleFactor),
+      protein: Math.round(meal.protein * scaleFactor),
+      carbs: Math.round(meal.carbs * scaleFactor),
+      fat: Math.round(meal.fat * scaleFactor)
+    }));
+
+    weeklyPlan.days[day] = {
+      meals: scaledMeals,
+      dailySummary: {
+        calories: Math.round(basePlan.dailySummary.calories * scaleFactor),
+        protein: Math.round(basePlan.dailySummary.protein * scaleFactor),
+        carbs: Math.round(basePlan.dailySummary.carbs * scaleFactor),
+        fat: Math.round(basePlan.dailySummary.fat * scaleFactor)
+      }
+    };
+  });
+
+  return weeklyPlan;
+};
+
 export const DietPlanGenerator = () => {
   const [selectedDiet, setSelectedDiet] = useState('weight-loss');
+  const [targetCalories, setTargetCalories] = useState<number | null>(null);
+  const [weeklyPlan, setWeeklyPlan] = useState<WeeklyDietPlan | null>(null);
+  const [selectedDay, setSelectedDay] = useState('Monday');
+  const { user } = useAuth();
+
+  useEffect(() => {
+    const fetchTargetCalories = async () => {
+      if (!user) return;
+
+      try {
+        const { data, error } = await supabase
+          .from('calorie_calculations')
+          .select('target_calories')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (error) {
+          console.error('Error fetching target calories:', error);
+          return;
+        }
+
+        if (data) {
+          setTargetCalories(data.target_calories);
+        }
+      } catch (error) {
+        console.error('Unexpected error:', error);
+      }
+    };
+
+    fetchTargetCalories();
+  }, [user]);
 
   const handleDietChange = (value: string) => {
     setSelectedDiet(value);
+    setWeeklyPlan(null);
   };
 
-  const currentDiet = DIET_PLANS[selectedDiet];
+  const generatePlan = () => {
+    if (!targetCalories) {
+      toast({
+        title: "No calorie target found",
+        description: "Please calculate your daily calorie needs first in the Calories section.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const plan = generateWeeklyPlan(selectedDiet, targetCalories);
+    setWeeklyPlan(plan);
+  };
+
+  const saveDietPlan = async () => {
+    if (!weeklyPlan || !user) return;
+
+    try {
+      const { error } = await supabase
+        .from('user_diet_plans')
+        .insert({
+          user_id: user.id,
+          plan_name: weeklyPlan.name,
+          description: weeklyPlan.description,
+          daily_calories: weeklyPlan.targetCalories,
+          protein_target: weeklyPlan.days[selectedDay].dailySummary.protein,
+          carbs_target: weeklyPlan.days[selectedDay].dailySummary.carbs,
+          fat_target: weeklyPlan.days[selectedDay].dailySummary.fat
+        });
+
+      if (error) throw error;
+
+      toast({
+        title: "Diet plan saved!",
+        description: "Your weekly diet plan has been saved successfully."
+      });
+    } catch (error) {
+      console.error('Error saving diet plan:', error);
+      toast({
+        title: "Error",
+        description: "Failed to save diet plan. Please try again.",
+        variant: "destructive"
+      });
+    }
+  };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Diet Plan Generator</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-6">
-          <div className="space-y-2">
-            <Label htmlFor="diet-type">Select Diet Plan</Label>
-            <Select onValueChange={handleDietChange} value={selectedDiet}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select a diet plan" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="weight-loss">Weight Loss</SelectItem>
-                <SelectItem value="muscle-gain">Muscle Building</SelectItem>
-                <SelectItem value="maintenance">Maintenance</SelectItem>
-                <SelectItem value="low-carb">Low Carb</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          
-          <div className="p-4 bg-gray-50 rounded-lg">
-            <h3 className="text-lg font-medium">{currentDiet.name}</h3>
-            <p className="text-gray-500 mt-1 mb-4">{currentDiet.description}</p>
-            
-            <div className="grid grid-cols-4 gap-2 text-center pt-2">
-              <div>
-                <p className="text-sm font-medium text-gray-500">Calories</p>
-                <p className="text-lg font-bold">{currentDiet.dailySummary.calories}</p>
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Calendar className="h-6 w-6" />
+            Weekly Diet Plan Generator
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="diet-type">Select Diet Plan Type</Label>
+                <Select onValueChange={handleDietChange} value={selectedDiet}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a diet plan" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="weight-loss">Weight Loss</SelectItem>
+                    <SelectItem value="muscle-gain">Muscle Building</SelectItem>
+                    <SelectItem value="maintenance">Maintenance</SelectItem>
+                    <SelectItem value="low-carb">Low Carb</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
-              <div>
-                <p className="text-sm font-medium text-gray-500">Protein</p>
-                <p className="text-lg font-bold">{currentDiet.dailySummary.protein}g</p>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-gray-500">Carbs</p>
-                <p className="text-lg font-bold">{currentDiet.dailySummary.carbs}g</p>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-gray-500">Fat</p>
-                <p className="text-lg font-bold">{currentDiet.dailySummary.fat}g</p>
+              
+              <div className="space-y-2">
+                <Label>Daily Calorie Target</Label>
+                <div className="p-3 bg-gray-50 rounded-md">
+                  {targetCalories ? (
+                    <span className="text-lg font-bold">{targetCalories} calories</span>
+                  ) : (
+                    <span className="text-gray-500">No target set</span>
+                  )}
+                </div>
               </div>
             </div>
+            
+            <Button onClick={generatePlan} className="w-full" disabled={!targetCalories}>
+              Generate Weekly Diet Plan
+            </Button>
           </div>
-          
-          <div className="space-y-4">
-            <h3 className="font-medium">Daily Meal Plan</h3>
-            {currentDiet.meals.map((meal, index) => (
-              <Card key={index} className="overflow-hidden">
-                <div className="flex">
-                  <div className="bg-primary/10 p-4 flex items-center justify-center">
-                    <Apple className="h-6 w-6 text-primary" />
-                  </div>
-                  <CardContent className="p-4 flex-1">
-                    <div className="flex justify-between items-start">
+        </CardContent>
+      </Card>
+
+      {weeklyPlan && (
+        <Card>
+          <CardHeader>
+            <CardTitle>{weeklyPlan.name}</CardTitle>
+            <p className="text-gray-600">{weeklyPlan.description}</p>
+          </CardHeader>
+          <CardContent>
+            <Tabs value={selectedDay} onValueChange={setSelectedDay}>
+              <TabsList className="grid w-full grid-cols-7">
+                {DAYS_OF_WEEK.map(day => (
+                  <TabsTrigger key={day} value={day} className="text-xs">
+                    {day.slice(0, 3)}
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+              
+              {DAYS_OF_WEEK.map(day => (
+                <TabsContent key={day} value={day} className="space-y-4">
+                  <div className="p-4 bg-gray-50 rounded-lg">
+                    <h3 className="text-lg font-medium mb-2">{day}</h3>
+                    <div className="grid grid-cols-4 gap-2 text-center">
                       <div>
-                        <h4 className="font-medium">{meal.title}</h4>
-                        <p className="text-sm text-gray-600">{meal.description}</p>
+                        <p className="text-sm font-medium text-gray-500">Calories</p>
+                        <p className="text-lg font-bold">{weeklyPlan.days[day].dailySummary.calories}</p>
                       </div>
-                      <span className="text-sm font-bold">{meal.calories} cal</span>
+                      <div>
+                        <p className="text-sm font-medium text-gray-500">Protein</p>
+                        <p className="text-lg font-bold">{weeklyPlan.days[day].dailySummary.protein}g</p>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-gray-500">Carbs</p>
+                        <p className="text-lg font-bold">{weeklyPlan.days[day].dailySummary.carbs}g</p>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-gray-500">Fat</p>
+                        <p className="text-lg font-bold">{weeklyPlan.days[day].dailySummary.fat}g</p>
+                      </div>
                     </div>
-                    <div className="flex gap-4 mt-2 text-xs">
-                      <span>Protein: {meal.protein}g</span>
-                      <span>Carbs: {meal.carbs}g</span>
-                      <span>Fat: {meal.fat}g</span>
-                    </div>
-                  </CardContent>
-                </div>
-              </Card>
-            ))}
-          </div>
-          
-          <Button className="w-full">
-            Get Personalized Diet Plan via AI
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
+                  </div>
+                  
+                  <div className="space-y-3">
+                    {weeklyPlan.days[day].meals.map((meal, index) => (
+                      <Card key={index} className="overflow-hidden">
+                        <div className="flex">
+                          <div className="bg-primary/10 p-4 flex items-center justify-center">
+                            <Apple className="h-6 w-6 text-primary" />
+                          </div>
+                          <CardContent className="p-4 flex-1">
+                            <div className="flex justify-between items-start">
+                              <div>
+                                <h4 className="font-medium">{meal.title}</h4>
+                                <p className="text-sm text-gray-600">{meal.description}</p>
+                              </div>
+                              <span className="text-sm font-bold">{meal.calories} cal</span>
+                            </div>
+                            <div className="flex gap-4 mt-2 text-xs">
+                              <span>Protein: {meal.protein}g</span>
+                              <span>Carbs: {meal.carbs}g</span>
+                              <span>Fat: {meal.fat}g</span>
+                            </div>
+                          </CardContent>
+                        </div>
+                      </Card>
+                    ))}
+                  </div>
+                </TabsContent>
+              ))}
+            </Tabs>
+            
+            <div className="mt-6 flex gap-3">
+              <Button onClick={saveDietPlan} className="flex-1">
+                Save Weekly Plan
+              </Button>
+              <Button variant="outline" className="flex-1">
+                Export Plan
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+    </div>
   );
 };
