@@ -4,7 +4,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ChartContainer } from '@/components/ui/chart';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { Calendar, Plus, Scale, TrendingDown, TrendingUp } from 'lucide-react';
@@ -56,7 +55,7 @@ const WeightTracker = () => {
   const fetchWeightEntries = async () => {
     try {
       const { data, error } = await supabase
-        .from('weight_tracking')
+        .from('weight_tracking' as any)
         .select('*')
         .eq('user_id', user?.id)
         .order('recorded_date', { ascending: true });
@@ -75,7 +74,7 @@ const WeightTracker = () => {
     setIsLoading(true);
     try {
       const { error } = await supabase
-        .from('weight_tracking')
+        .from('weight_tracking' as any)
         .insert([{
           user_id: user.id,
           weight: parseFloat(newWeight),

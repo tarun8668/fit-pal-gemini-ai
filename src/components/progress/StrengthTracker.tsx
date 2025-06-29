@@ -58,7 +58,7 @@ const StrengthTracker = () => {
   const fetchStrengthEntries = async () => {
     try {
       const { data, error } = await supabase
-        .from('strength_tracking')
+        .from('strength_tracking' as any)
         .select('*')
         .eq('user_id', user?.id)
         .order('recorded_date', { ascending: true });
@@ -85,7 +85,7 @@ const StrengthTracker = () => {
     setIsLoading(true);
     try {
       const { error } = await supabase
-        .from('strength_tracking')
+        .from('strength_tracking' as any)
         .insert([{
           user_id: user.id,
           exercise_name: exerciseName,

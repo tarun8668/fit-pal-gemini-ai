@@ -171,6 +171,45 @@ export type Database = {
         }
         Relationships: []
       }
+      strength_tracking: {
+        Row: {
+          created_at: string
+          exercise_name: string
+          id: string
+          one_rep_max: number
+          recorded_date: string
+          reps: number
+          sets: number
+          updated_at: string
+          user_id: string
+          weight: number
+        }
+        Insert: {
+          created_at?: string
+          exercise_name: string
+          id?: string
+          one_rep_max: number
+          recorded_date?: string
+          reps: number
+          sets: number
+          updated_at?: string
+          user_id: string
+          weight: number
+        }
+        Update: {
+          created_at?: string
+          exercise_name?: string
+          id?: string
+          one_rep_max?: number
+          recorded_date?: string
+          reps?: number
+          sets?: number
+          updated_at?: string
+          user_id?: string
+          weight?: number
+        }
+        Relationships: []
+      }
       subscriptions: {
         Row: {
           amount: number
@@ -357,6 +396,36 @@ export type Database = {
           split_type?: string
           updated_at?: string | null
           user_id?: string
+        }
+        Relationships: []
+      }
+      weight_tracking: {
+        Row: {
+          created_at: string
+          id: string
+          notes: string | null
+          recorded_date: string
+          updated_at: string
+          user_id: string
+          weight: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          notes?: string | null
+          recorded_date?: string
+          updated_at?: string
+          user_id: string
+          weight: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          notes?: string | null
+          recorded_date?: string
+          updated_at?: string
+          user_id?: string
+          weight?: number
         }
         Relationships: []
       }
